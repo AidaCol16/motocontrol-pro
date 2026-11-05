@@ -1055,5 +1055,28 @@ def api_unidad():
     except Exception as e:
         return jsonify({"exito": False, "mensaje": str(e)})
 
+@app.route('/ping')
+def ping_keepalive():
+    return "ok", 200
+
+def _iniciar_keepalive():
+    """Mantiene despierto el servidor en Render 24/7 para evitar la pantalla de espera de Render."""
+    import threading
+    import urllib.request
+    def _loop():
+        while True:
+            time.sleep(600)  # cada 10 minutos
+            for url in ["https://controlmotos.cibershieldac.com/ping", "https://motocontrol-pro.onrender.com/ping"]:
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": "MotoControl-KeepAlive/1.0"})
+                    urllib.request.urlopen(req, timeout=15).read()
+                except Exception:
+                    pass
+    if os.environ.get("RENDER") or os.environ.get("DATABASE_URL"):
+        hilo = threading.Thread(target=_loop, daemon=True)
+        hilo.start()
+
+_iniciar_keepalive()
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5050)
