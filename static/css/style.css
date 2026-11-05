@@ -1,0 +1,76 @@
+:root {
+    --bg-dark: #0b0e14;        /* Fondo más profundo */
+    --bg-card: #161b22;        /* Fondo de tarjetas, tablas y modales */
+    --bg-input: #0d1117;       /* Fondo de campos de texto */
+    --text-primary: #f0f6fc;   /* Texto principal (blanco suave) */
+    --text-muted: #8b949e;     /* Texto secundario (gris) */
+    --accent: #ff6b00;         /* Naranja Racing */
+    --accent-hover: #e66000;   /* Naranja más oscuro para hover */
+    --border: #30363d;         /* Color de bordes y separadores */
+    --success: #238636;
+    --danger: #da3633;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+}
+
+/* --- TABLAS (Inventario, Socios, Pedidos) --- */
+.table {
+    color: var(--text-primary) !important;
+    background-color: var(--bg-card) !important;
+    border-color: var(--border) !important;
+}
+
+.table thead th {
+    background-color: #121d2f !important; /* Azul muy oscuro para contraste */
+    color: var(--accent) !important;
+    border-bottom: 2px solid var(--accent) !important;
+}
+
+.table td {
+    border-color: var(--border) !important;
+    vertical-align: middle;
+}
+
+/* --- FORMULARIOS --- */
+.card {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.form-control, .form-select {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+}
+
+.form-control:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 0, 0.25) !important;
+}
+
+/* --- BOTONES --- */
+.btn-primary {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    font-weight: bold;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover) !important;
+}
+
+/* --- NAVBAR --- */
+.navbar {
+    background-color: var(--bg-card) !important;
+    border-bottom: 1px solid var(--border);
+}
+
+.navbar-brand, .nav-link {
+    color: var(--accent) !important;
+    font-weight: bold;
+}

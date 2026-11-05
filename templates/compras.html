@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header bg-dark text-white">
+            <h3 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Registro de Compras y Cálculo de Precios de Venta</h3>
+        </div>
+        <div class="card-body">
+            <form id="formCompras">
+                <div class="row g-3">
+                    <div class="col-md-4 position-relative">
+                        <label class="form-label fw-bold">Buscar Repuesto:</label>
+                        <input type="text" id="input_prod" class="form-control" placeholder="ID, Nombre o Marca..." autocomplete="off" required>
+                        <ul id="lista_prod_compras" class="list-group position-absolute w-100 shadow" style="z-index:1000; display:none; max-height: 220px; overflow-y: auto;"></ul>
+                        <input type="hidden" name="id_p" id="id_p_real">
+                        <div id="label_prod" class="mt-2 small fw-bold text-primary"></div>
+                    </div>
+
+                    <div class="col-md-4 position-relative">
+                        <label class="form-label fw-bold">Proveedor (RIF o Nombre):</label>
+                        <input type="text" id="input_prov" name="rif" class="form-control text-uppercase" placeholder="Ej: J-123456 o nombre..." autocomplete="off" required>
+                        <ul id="lista_prov_compras" class="list-group position-absolute w-100 shadow" style="z-index:1000; display:none; max-height: 220px; overflow-y: auto;"></ul>
+                        <input type="hidden" id="rif_real">
+                        <div id="label_prov" class="mt-2 small fw-bold text-success"></div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">N° Factura:</label>
+                        <input type="text" name="factura" class="form-control text-uppercase" placeholder="FAC-0001" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Cantidad a Ingresar:</label>
+                        <input type="number" name="cant" class="form-control" min="1" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Costo Unitario ($):</label>
+                        <input type="number" step="0.01" min="0.01" name="prec" id="input_costo_compra" class="form-control fw-bold" placeholder="0.00" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Condición Fiscal:</label>
+                        <select name="condicion_iva" id="select_iva_compra" class="form-select">
+                            <option value="iva">Gravado (+16% IVA)</option>
+                            <option value="exento">Exento (0% IVA)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Tarifa para Catálogo:</label>
+                        <select name="tarifa_activa" id="select_tarifa_compra" class="form-select border-primary fw-semibold">
+                            <option value="1">Precio 1 (+20%)</option>
+                            <option value="2">Precio 2 (+25%)</option>
+                            <option value="3" selected>Precio 3 (+30%)</option>
+                        </select>
+                    </div>
+
+                    <!-- PREVISUALIZACIÓN AUTOMÁTICA DE LOS 3 PRECIOS -->
+                    <div class="col-12">
+                        <div class="alert alert-light border shadow-sm py-2 mb-0">
+                            <div class="row text-center align-items-center">
+                                <div class="col-md-3 border-end">
+                                    <small class="text-muted d-block">Costo Full (Base + Impuesto)</small>
+                                    <span class="fs-5 fw-bold text-secondary" id="comp_costo_full">$0.00</span>
+                                </div>
+                                <div class="col-md-3 border-end">
+                                    <small class="text-muted d-block fw-bold">Precio 1 (+20%)</small>
+                                    <span class="fs-5 fw-bold text-success" id="comp_p1">$0.00</span>
+                                </div>
+                                <div class="col-md-3 border-end">
+                                    <small class="text-muted d-block fw-bold">Precio 2 (+25%)</small>
+                                    <span class="fs-5 fw-bold text-primary" id="comp_p2">$0.00</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block fw-bold">Precio 3 (+30%)</small>
+                                    <span class="fs-5 fw-bold text-dark" id="comp_p3">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                            <i class="fas fa-plus-circle me-2"></i>Registrar Entrada y Actualizar Precios de Venta
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if compras_recientes is defined %}
+    <div class="card shadow">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Últimas Compras Registradas</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Factura</th>
+                            <th>Repuesto</th>
+                            <th>Proveedor</th>
+                            <th class="text-center">Cantidad</th>
+                            <th class="text-end pe-3">Costo Unit. ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in compras_recientes %}
+                        <tr>
+                            <td>{{ c.fecha.strftime('%d/%m/%Y %H:%M') if c.fecha else '-' }}</td>
+                            <td><span class="badge bg-dark">{{ c.factura }}</span></td>
+                            <td class="fw-semibold">{{ c.descripcion }}</td>
+                            <td>{{ c.proveedor }}</td>
+                            <td class="text-center"><span class="badge bg-success">+{{ c.cantidad_comprada }}</span></td>
+                            <td class="text-end pe-3 fw-bold">${{ "%.2f"|format(c.precio_compra or 0) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">Aún no hay compras registradas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function recalcularPreciosCompra() {
+    const costo = parseFloat(document.getElementById('input_costo_compra').value || '0');
+    const esIva = document.getElementById('select_iva_compra').value === 'iva';
+    const costoFull = costo * (esIva ? 1.16 : 1.0);
+
+    document.getElementById('comp_costo_full').innerText = `$${costoFull.toFixed(2)}`;
+    document.getElementById('comp_p1').innerText = `$${(costoFull * 1.20).toFixed(2)}`;
+    document.getElementById('comp_p2').innerText = `$${(costoFull * 1.25).toFixed(2)}`;
+    document.getElementById('comp_p3').innerText = `$${(costoFull * 1.30).toFixed(2)}`;
+}
+
+document.getElementById('input_costo_compra').addEventListener('input', recalcularPreciosCompra);
+document.getElementById('select_iva_compra').addEventListener('change', recalcularPreciosCompra);
+
+// --- 1. BUSCAR PRODUCTO CON LISTA DESPLEGABLE ---
+document.getElementById('input_prod').addEventListener('input', function() {
+    let query = this.value.trim();
+    let lista = document.getElementById('lista_prod_compras');
+    document.getElementById('id_p_real').value = "";
+
+    if (query.length > 0) {
+        fetch(`/api/buscar_producto_smart/${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                lista.innerHTML = '';
+                if (data.encontrado) {
+                    let p0 = data.resultados[0];
+                    document.getElementById('id_p_real').value = p0.id_repuesto;
+                    document.getElementById('label_prod').innerHTML = `✅ #${p0.id_repuesto} - ${p0.descripcion} (${p0.marca}) | Stock actual: ${p0.stock}`;
+
+                    data.resultados.forEach(p => {
+                        let li = document.createElement('li');
+                        li.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                        li.style.cursor = 'pointer';
+                        li.innerHTML = `<span><strong>#${p.id_repuesto} - ${p.descripcion}</strong> <small class="text-muted">(${p.marca})</small></span><span class="badge bg-secondary">Stock: ${p.stock}</span>`;
+                        li.onclick = () => {
+                            document.getElementById('input_prod').value = `${p.id_repuesto} - ${p.descripcion}`;
+                            document.getElementById('id_p_real').value = p.id_repuesto;
+                            document.getElementById('label_prod').innerHTML = `✅ #${p.id_repuesto} - ${p.descripcion} (${p.marca}) | Stock actual: ${p.stock}`;
+                            if (p.costo_base && !document.getElementById('input_costo_compra').value) {
+                                document.getElementById('input_costo_compra').value = p.costo_base.toFixed(2);
+                                recalcularPreciosCompra();
+                            }
+                            lista.style.display = 'none';
+                        };
+                        lista.appendChild(li);
+                    });
+                    lista.style.display = 'block';
+                } else {
+                    lista.style.display = 'none';
+                    document.getElementById('label_prod').innerHTML = `<span class="text-danger">❌ Repuesto no registrado</span>`;
+                }
+            });
+    } else {
+        lista.style.display = 'none';
+        document.getElementById('label_prod').innerHTML = "";
+    }
+});
+
+// --- 2. BUSCAR PROVEEDOR POR RIF O NOMBRE ---
+document.getElementById('input_prov').addEventListener('input', function() {
+    let q = this.value.trim();
+    let labelProv = document.getElementById('label_prov');
+    let hiddenRif = document.getElementById('rif_real');
+    let lista = document.getElementById('lista_prov_compras');
+    hiddenRif.value = "";
+
+    if (q.length > 0) {
+        fetch(`/api/buscar_proveedor_smart/${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => {
+                lista.innerHTML = '';
+                if (data.encontrado) {
+                    let c0 = data.resultados[0];
+                    hiddenRif.value = c0.id_proveedor;
+                    labelProv.innerHTML = `✅ ${c0.nombre_empresa} (${c0.id_proveedor})`;
+                    labelProv.className = 'mt-2 small fw-bold text-success';
+
+                    data.resultados.forEach(c => {
+                        let li = document.createElement('li');
+                        li.className = 'list-group-item list-group-item-action';
+                        li.style.cursor = 'pointer';
+                        li.innerHTML = `<strong>${c.id_proveedor}</strong> - ${c.nombre_empresa}`;
+                        li.onclick = () => {
+                            document.getElementById('input_prov').value = c.id_proveedor;
+                            hiddenRif.value = c.id_proveedor;
+                            labelProv.innerHTML = `✅ ${c.nombre_empresa}`;
+                            labelProv.className = 'mt-2 small fw-bold text-success';
+                            lista.style.display = 'none';
+                        };
+                        lista.appendChild(li);
+                    });
+                    lista.style.display = 'block';
+                } else {
+                    lista.style.display = 'none';
+                    labelProv.innerHTML = `❌ No encontrado como proveedor (regístrelo en Socios)`;
+                    labelProv.className = 'mt-2 small fw-bold text-danger';
+                }
+            });
+    } else {
+        lista.style.display = 'none';
+        labelProv.innerHTML = "";
+    }
+});
+
+// --- 3. ENVÍO DE DATOS ---
+document.getElementById('formCompras').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!document.getElementById('id_p_real').value || !document.getElementById('rif_real').value) {
+        alert("Error: Debe seleccionar un producto y un proveedor válidos.");
+        return;
+    }
+    document.getElementById('input_prov').value = document.getElementById('rif_real').value;
+
+    fetch('/compras', { 
+        method: 'POST', 
+        body: new FormData(this) 
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.mensaje);
+        if (data.exito) window.location.reload();
+    })
+    .catch(err => {
+        alert("Error de conexión");
+        console.error(err);
+    });
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.position-relative')) {
+        document.getElementById('lista_prod_compras').style.display = 'none';
+        document.getElementById('lista_prov_compras').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 border-0 border-top border-primary border-4">
+            <h4 class="text-primary mb-3" id="form-title"><i class="bi bi-person-vcard"></i> Registro Proveedor</h4>
+            <form id="formProv">
+                <div class="mb-3">
+                    <label class="fw-bold small">RIF / Cédula (ID):</label>
+                    <input type="text" name="rif" id="rif_input" class="form-control" required>
+                    <div id="msj_rif" class="mt-1 small"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold small">Nombre / Empresa:</label>
+                    <input type="text" name="nom" id="nom_input" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold small">Ubicación Actual:</label>
+                    <textarea name="dir" id="dir_input" class="form-control" rows="2" placeholder="Ej: Acarigua, Calle 31..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold small">Teléfono:</label>
+                    <input type="text" name="tlf" id="tlf_input" class="form-control">
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" id="btn-submit" class="btn btn-primary shadow">Guardar Cambios</button>
+                    <button type="button" onclick="resetForm()" class="btn btn-light btn-sm border">Limpiar / Nuevo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm p-4 border-0">
+            <h4 class="text-secondary mb-3">Proveedores Registrados</h4>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>RIF / ID</th>
+                            <th>Empresa</th>
+                            <th>Ubicación</th>
+                            <th>Teléfono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in proveedores %}
+                        <tr style="cursor: pointer;" onclick="cargarEdicion('{{p.id_proveedor}}', '{{p.nombre_empresa}}', '{{p.ubicacion}}', '{{p.telefono}}')" title="Clic para editar">
+                            <td><span class="badge bg-info text-dark">{{ p.id_proveedor }}</span></td>
+                            <td class="fw-bold text-uppercase">{{ p.nombre_empresa }}</td>
+                            <td class="small">{{ p.ubicacion if p.ubicacion else '---' }}</td>
+                            <td class="small">{{ p.telefono if p.telefono else '---' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-muted mt-2 d-block"><i class="bi bi-info-circle"></i> Al hacer clic en un proveedor, el RIF se bloquea para proteger la integridad de los datos.</small>
+        </div>
+    </div>
+</div>
+
+<script>
+// Función para subir datos de la tabla al formulario
+function cargarEdicion(rif, nom, ubi, tlf) {
+    const rifInput = document.getElementById('rif_input');
+    rifInput.value = rif;
+    rifInput.readOnly = true; // Bloqueo del ID
+    rifInput.style.backgroundColor = "#e9ecef"; // Color gris de bloqueado
+    
+    document.getElementById('nom_input').value = nom;
+    document.getElementById('dir_input').value = (ubi !== 'None' && ubi !== '') ? ubi : '';
+    document.getElementById('tlf_input').value = (tlf !== 'None' && tlf !== '') ? tlf : '';
+    
+    document.getElementById('form-title').innerHTML = '<i class="bi bi-pencil-square"></i> Editando Proveedor';
+    document.getElementById('btn-submit').className = 'btn btn-warning shadow';
+    document.getElementById('btn-submit').innerText = 'Actualizar Datos';
+}
+
+// Función para resetear el formulario a modo "Nuevo"
+function resetForm() {
+    document.getElementById('formProv').reset();
+    const rifInput = document.getElementById('rif_input');
+    rifInput.readOnly = false;
+    rifInput.style.backgroundColor = "#fff";
+    
+    document.getElementById('form-title').innerHTML = '<i class="bi bi-person-vcard"></i> Registro Proveedor';
+    document.getElementById('btn-submit').className = 'btn btn-primary shadow';
+    document.getElementById('btn-submit').innerText = 'Guardar Cambios';
+    document.getElementById('msj_rif').innerHTML = '';
+}
+
+// Envío al servidor
+document.getElementById('formProv').onsubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/proveedores', { method: 'POST', body: new FormData(e.target) });
+    const data = await res.json();
+    
+    Swal.fire({
+        title: 'Sistema',
+        text: data.mensaje,
+        icon: data.exito ? 'success' : 'error',
+        timer: 2000,
+        showConfirmButton: false
+    }).then(() => { if(data.exito) location.reload(); });
+};
+
+// Validación visual de RIF al escribir manualmente
+document.getElementById('rif_input').oninput = async (e) => {
+    if(!e.target.readOnly) {
+        const val = e.target.value;
+        if(val.length >= 3) {
+            const res = await fetch(`/api/buscar_proveedor/${val}`);
+            const data = await res.json();
+            const msj = document.getElementById('msj_rif');
+            msj.innerHTML = data.encontrado ? 
+                '<span class="text-warning fw-bold">⚠️ RIF existente. Selecciónalo en la tabla para editar.</span>' : 
+                '<span class="text-success fw-bold">✅ RIF disponible para nuevo registro.</span>';
+        }
+    }
+};
+</script>
+{% endblock %}

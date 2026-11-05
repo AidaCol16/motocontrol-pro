@@ -1,0 +1,186 @@
+{
+  "5": {
+    "costo_base": 5.0,
+    "aplica_iva": true,
+    "costo_full": 5.8,
+    "precio1": 6.96,
+    "precio2": 7.25,
+    "precio3": 7.54,
+    "tarifa_activa": 3,
+    "precio_venta": 7.54,
+    "imagen_url": "/static/uploads/repuesto_5_1793367143.png",
+    "categoria": "ELECTRICO"
+  },
+  "1": {
+    "costo_base": 16.0,
+    "aplica_iva": true,
+    "costo_full": 18.56,
+    "precio1": 22.27,
+    "precio2": 23.2,
+    "precio3": 24.13,
+    "tarifa_activa": 3,
+    "precio_venta": 24.13,
+    "categoria": "KIT",
+    "imagen_url": "/static/uploads/repuesto_1_1793378640.png"
+  },
+  "2": {
+    "costo_base": 14.0,
+    "aplica_iva": true,
+    "costo_full": 16.24,
+    "precio1": 19.49,
+    "precio2": 20.3,
+    "precio3": 21.11,
+    "tarifa_activa": 3,
+    "precio_venta": 21.11,
+    "categoria": "BATERIA",
+    "imagen_url": "/static/uploads/repuesto_2_1793378567.png"
+  },
+  "3": {
+    "costo_base": 15.0,
+    "aplica_iva": true,
+    "costo_full": 17.4,
+    "precio1": 20.88,
+    "precio2": 21.75,
+    "precio3": 22.62,
+    "tarifa_activa": 3,
+    "precio_venta": 22.62,
+    "categoria": "KIT",
+    "imagen_url": "/static/uploads/repuesto_3_1793378486.png"
+  },
+  "4": {
+    "costo_base": 25.0,
+    "aplica_iva": true,
+    "costo_full": 29.0,
+    "precio1": 34.8,
+    "precio2": 36.25,
+    "precio3": 37.7,
+    "tarifa_activa": 3,
+    "precio_venta": 37.7,
+    "categoria": "CAUCHOS",
+    "imagen_url": "/static/uploads/repuesto_4_1793378385.png"
+  },
+  "6": {
+    "costo_base": 14.0,
+    "aplica_iva": true,
+    "costo_full": 16.24,
+    "precio1": 19.49,
+    "precio2": 20.3,
+    "precio3": 21.11,
+    "tarifa_activa": 3,
+    "precio_venta": 21.11,
+    "categoria": "CAUCHOS",
+    "imagen_url": "/static/uploads/repuesto_6_1793378765.png"
+  },
+  "7": {
+    "costo_base": 2.0,
+    "aplica_iva": true,
+    "costo_full": 2.32,
+    "precio1": 2.78,
+    "precio2": 2.9,
+    "precio3": 3.02,
+    "tarifa_activa": 3,
+    "precio_venta": 3.02,
+    "categoria": "FRENOS",
+    "imagen_url": "/static/uploads/repuesto_7_1793378318.png"
+  },
+  "8": {
+    "costo_base": 15.0,
+    "aplica_iva": true,
+    "costo_full": 17.4,
+    "precio1": 20.88,
+    "precio2": 21.75,
+    "precio3": 22.62,
+    "tarifa_activa": 3,
+    "precio_venta": 22.62,
+    "categoria": "CAUCHOS",
+    "imagen_url": "/static/uploads/repuesto_8_1793378257.png"
+  },
+  "9": {
+    "costo_base": 8.0,
+    "aplica_iva": true,
+    "costo_full": 9.28,
+    "precio1": 11.14,
+    "precio2": 11.6,
+    "precio3": 12.06,
+    "tarifa_activa": 3,
+    "precio_venta": 12.06,
+    "categoria": "ELÉCTRICO",
+    "imagen_url": "/static/uploads/repuesto_9_1793378203.png"
+  },
+  "90": {
+    "costo_base": 4.8,
+    "aplica_iva": true,
+    "costo_full": 5.57,
+    "precio1": 6.68,
+    "precio2": 6.96,
+    "precio3": 7.24,
+    "tarifa_activa": 3,
+    "precio_venta": 7.24,
+    "categoria": "ELÉCTRICO",
+    "imagen_url": "/static/uploads/repuesto_90_1793378044.png"
+  },
+  "501": {
+    "costo_base": 2.0,
+    "aplica_iva": true,
+    "costo_full": 2.32,
+    "precio1": 2.78,
+    "precio2": 2.9,
+    "precio3": 3.02,
+    "tarifa_activa": 3,
+    "precio_venta": 3.02,
+    "categoria": "FRENOS",
+    "imagen_url": "/static/uploads/repuesto_501_1793377940.png"
+  },
+  "502": {
+    "costo_base": 8.0,
+    "aplica_iva": true,
+    "costo_full": 9.28,
+    "precio1": 11.14,
+    "precio2": 11.6,
+    "precio3": 12.06,
+    "tarifa_activa": 3,
+    "precio_venta": 12.06,
+    "categoria": "CADENA",
+    "imagen_url": "/static/uploads/repuesto_502_1793377866.png"
+  },
+  "503": {
+    "costo_base": 7.5,
+    "aplica_iva": true,
+    "costo_full": 8.7,
+    "precio1": 10.44,
+    "precio2": 10.88,
+    "precio3": 11.31,
+    "tarifa_activa": 3,
+    "precio_venta": 11.31,
+    "categoria": "ACCESORIOS",
+    "imagen_url": "/static/uploads/repuesto_503_1793378108.png"
+  },
+  "504": {
+    "costo_base": 12.0,
+    "aplica_iva": true,
+    "costo_full": 13.92,
+    "precio1": 16.7,
+    "precio2": 17.4,
+    "precio3": 18.1,
+    "tarifa_activa": 3,
+    "precio_venta": 18.1,
+    "categoria": "ACCESORIOS",
+    "imagen_url": "/static/uploads/repuesto_504_1793372758.png"
+  },
+  "_config_pago": {
+    "banco": "0105- Mercantil",
+    "rif_negocio": "V-18799049",
+    "telefono_pm": "0412-5756301",
+    "titular": "MOTOCONTROL PRO C.A.",
+    "tasa_bcv": 894.89,
+    "ultima_actualizacion": "05/11/2026 10:00",
+    "actualizado_por": "aida_admin",
+    "historial_tasas": [
+      {
+        "fecha": "05/11/2026 10:00",
+        "tasa_bcv": 894.89,
+        "usuario": "aida_admin"
+      }
+    ]
+  }
+}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <!-- TARJETA DE PEDIDOS ENTRANTES (DEL CLIENTE EN LA CALLE O MOSTRADOR) -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-dark text-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h3 class="mb-0"><i class="fas fa-bell me-2 text-warning"></i>Órdenes Pendientes y Verificación de Pago Móvil</h3>
+                <small class="text-light opacity-75">Verifica la referencia bancaria del cliente, contáctalo por WhatsApp y confirma la venta.</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-success btn-sm fw-bold" onclick="copiarLinkTienda()">
+                    <i class="fas fa-share-alt me-1"></i>Copiar Link para Clientes
+                </button>
+                <a href="/tienda" target="_blank" class="btn btn-outline-info btn-sm fw-bold">
+                    <i class="fas fa-external-link-alt me-1"></i>Ver Tienda del Cliente
+                </a>
+                <a href="/pedido_cliente" class="btn btn-warning btn-sm fw-bold text-dark">
+                    <i class="fas fa-plus me-1"></i>Pedido Manual
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="ps-3"># Orden</th>
+                            <th>Fecha</th>
+                            <th>Cliente / Contacto</th>
+                            <th>Repuesto</th>
+                            <th class="text-center">Cant.</th>
+                            <th>Total ($ / Bs.)</th>
+                            <th>Pago Móvil / Ref.</th>
+                            <th class="text-center pe-3">Interacción y Cierre</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pedidos %}
+                        <tr>
+                            <td class="ps-3"><strong>#{{ p.id_pedido }}</strong></td>
+                            <td><small class="text-muted">{{ p.fecha_pedido.strftime('%d/%m/%Y %H:%M') if p.fecha_pedido else '-' }}</small></td>
+                            <td>
+                                <strong>{{ p.cliente }}</strong>
+                                <div class="small text-muted">RIF/CI: {{ p.cliente_rif or '-' }}</div>
+                                {% if p.telefono_contacto %}
+                                <div class="small fw-bold text-success"><i class="fas fa-phone-alt me-1"></i>{{ p.telefono_contacto }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-semibold">{{ p.descripcion }}</span>
+                                <br><small class="text-muted">{{ p.marca }}</small>
+                            </td>
+                            <td class="text-center"><span class="badge bg-secondary fs-6">{{ p.cantidad }}</span></td>
+                            <td>
+                                <div class="fw-bold text-primary">${{ "%.2f"|format(p.total_usd or 0) }}</div>
+                                <small class="text-muted fw-semibold">Bs. {{ "%.2f"|format(p.total_bs or 0) }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info text-dark">{{ p.metodo_pago }}</span>
+                                {% if p.referencia_pm %}
+                                <div class="small fw-bold text-dark mt-1">Ref: <span class="text-danger">#{{ p.referencia_pm }}</span></div>
+                                {% endif %}
+                                {% if p.banco_origen %}
+                                <div class="small text-muted">{{ p.banco_origen }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center pe-3">
+                                <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                    {% if p.telefono_wa %}
+                                    <a href="https://wa.me/{{ p.telefono_wa }}?text={{ ('Hola ' ~ p.cliente ~ ', te escribimos de MotoControl Pro sobre tu Orden #' ~ p.id_pedido ~ ' (' ~ p.cantidad ~ 'x ' ~ p.descripcion ~ ' por $' ~ ('%.2f'|format(p.total_usd)) ~ ' / Bs. ' ~ ('%.2f'|format(p.total_bs)) ~ ').')|urlencode }}"
+                                       target="_blank"
+                                       class="btn btn-sm btn-outline-success fw-bold"
+                                       title="Chatear con el cliente por WhatsApp">
+                                        <i class="fab fa-whatsapp"></i> WhatsApp
+                                    </a>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-success fw-bold" onclick="cerrarVenta({{ p.id_pedido }})">
+                                        <i class="fas fa-check"></i> Confirmar
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="anularPedido({{ p.id_pedido }})">
+                                        <i class="fas fa-trash"></i> Anular
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                No hay órdenes pendientes por verificar actualmente.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORIAL DE PEDIDOS COMPLETADOS -->
+    {% if completados is defined %}
+    <div class="card shadow">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-check-double me-2"></i>Últimas Ventas Confirmadas</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3"># Orden</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Repuesto</th>
+                            <th class="text-center">Cantidad</th>
+                            <th>Monto ($ / Bs.)</th>
+                            <th>Pago / Ref.</th>
+                            <th class="text-center pe-3">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in completados %}
+                        <tr>
+                            <td class="ps-3 text-muted fw-bold">#{{ c.id_pedido }}</td>
+                            <td><small>{{ c.fecha_pedido.strftime('%d/%m/%Y %H:%M') if c.fecha_pedido else '-' }}</small></td>
+                            <td>
+                                <strong>{{ c.cliente }}</strong> <small class="text-muted">({{ c.cliente_rif }})</small>
+                                {% if c.telefono_contacto %}<br><small class="text-muted">{{ c.telefono_contacto }}</small>{% endif %}
+                            </td>
+                            <td>{{ c.descripcion }}</td>
+                            <td class="text-center fw-bold">{{ c.cantidad }}</td>
+                            <td>
+                                <strong>${{ "%.2f"|format(c.total_usd or 0) }}</strong>
+                                <br><small class="text-muted">Bs. {{ "%.2f"|format(c.total_bs or 0) }}</small>
+                            </td>
+                            <td>
+                                <small>{{ c.metodo_pago }} {% if c.referencia_pm %}(Ref: #{{ c.referencia_pm }}){% endif %}</small>
+                            </td>
+                            <td class="text-center pe-3"><span class="badge bg-success">COMPLETADO</span></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-3">Aún no hay pedidos completados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function copiarLinkTienda() {
+    const urlTienda = window.location.origin + '/tienda';
+    navigator.clipboard.writeText(urlTienda);
+    alert("✅ Enlace de la Tienda para el cliente copiado:\n" + urlTienda + "\n\nYa puedes pegarlo y enviarlo por WhatsApp.");
+}
+
+function cerrarVenta(id) {
+    if(!confirm("¿Ya verificaste el Pago Móvil y deseas confirmar esta venta? Esto descontará el stock físico permanentemente.")) return;
+
+    fetch(`/confirmar_pedido/${id}`, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.mensaje);
+        if(data.exito) window.location.reload();
+    })
+    .catch(err => {
+        console.error("Error:", err);
+        alert("Error al procesar la venta.");
+    });
+}
+
+function anularPedido(id) {
+    if(!confirm("¿Seguro que deseas ANULAR este pedido? El stock reservado se liberará de inmediato.")) return;
+
+    fetch(`/eliminar_pedido/${id}`, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.mensaje);
+        if(data.exito) window.location.reload();
+    })
+    .catch(err => {
+        console.error("Error:", err);
+        alert("Error al intentar anular el pedido.");
+    });
+}
+</script>
+{% endblock %}

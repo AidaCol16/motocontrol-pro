@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-3">
+    <div class="card shadow border-0 mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i> Registro y Escala de Precios de Repuestos</h4>
+            <a href="/catalogo" class="btn btn-info btn-sm fw-bold text-dark"><i class="fas fa-th-large me-1"></i>Ver Catálogo Visual</a>
+        </div>
+        <div class="card-body">
+            <form id="formNuevo" enctype="multipart/form-data">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">ID / Código</label>
+                        <input type="number" name="id_n" id="id_n" class="form-control" placeholder="000" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Descripción</label>
+                        <input type="text" name="desc" id="desc" class="form-control text-uppercase" placeholder="EJ: KIT DE ARRASTRE" required>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Marca</label>
+                        <div class="input-group">
+                            <select name="marc" id="select_marca" class="form-select" required>
+                                <option value="">Seleccione...</option>
+                                {% for m in marcas %}
+                                <option value="{{ m.nombre_marca }}">{{ m.nombre_marca }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-dark" onclick="abrirModalAttr('marca')">+</button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Categoría</label>
+                        <div class="input-group">
+                            <select name="cat" id="select_categoria" class="form-select" required>
+                                <option value="">Seleccione...</option>
+                                {% for c in categorias %}
+                                <option value="{{ c.nombre_categoria }}">{{ c.nombre_categoria }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-dark" onclick="abrirModalAttr('categoria')">+</button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Unidad</label>
+                        <div class="input-group">
+                            <select name="uni" id="select_unidad" class="form-select" required>
+                                <option value="">Seleccione...</option>
+                                {% for u in unidades %}
+                                <option value="{{ u.nombre_unidad }}">{{ u.nombre_unidad }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-dark" onclick="abrirModalAttr('unidad')">+</button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Costo Base ($)</label>
+                        <input type="number" step="0.01" min="0.01" name="costo_base" id="costo_base" class="form-control fw-bold" placeholder="10.00" value="10.00" required>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">IVA / Exento</label>
+                        <select name="condicion_iva" id="condicion_iva" class="form-select">
+                            <option value="iva">Con IVA (16%)</option>
+                            <option value="exento">Exento (0%)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Precio Anclado al Catálogo</label>
+                        <select name="tarifa_activa" id="tarifa_activa" class="form-select border-primary fw-semibold">
+                            <option value="1" id="opt_p1">Precio 1 (+20%)</option>
+                            <option value="2" id="opt_p2">Precio 2 (+25%)</option>
+                            <option value="3" id="opt_p3" selected>Precio 3 (+30%)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold"><i class="fas fa-camera me-1 text-primary"></i>Imagen del Producto (Opcional):</label>
+                        <input type="file" name="imagen_file" id="imagen_file_nuevo" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif,.bmp">
+                    </div>
+
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-success w-100 fw-bold py-2">
+                            <i class="fas fa-save me-1"></i>Guardar Repuesto y Escala de Precios
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i> Repuestos y Escala de Precios (P1 20% | P2 25% | P3 30%)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Foto</th>
+                            <th>ID</th>
+                            <th>Descripción</th>
+                            <th>Fiscal</th>
+                            <th>Costo Full</th>
+                            <th>Precio 1 (20%)</th>
+                            <th>Precio 2 (25%)</th>
+                            <th>Precio 3 (30%)</th>
+                            <th>Catálogo</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in productos %}
+                        <tr>
+                            <td style="width: 55px;">
+                                {% if p.imagen_url %}
+                                <img src="{{ p.imagen_url }}" alt="Foto" class="rounded border" style="width: 42px; height: 42px; object-fit: cover;">
+                                {% else %}
+                                <div class="rounded bg-light border d-flex align-items-center justify-content-center text-muted" style="width: 42px; height: 42px;">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold">#{{ p.id_repuesto }}</td>
+                            <td>
+                                <div class="fw-bold">{{ p.descripcion }}</div>
+                                <small class="text-muted">{{ p.marca }} | {{ p.categoria }}</small>
+                            </td>
+                            <td>
+                                {% if p.aplica_iva %}
+                                <span class="badge bg-primary-subtle text-primary border">IVA 16%</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border">Exento</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted fw-semibold">${{ "%.2f"|format(p.costo_full) }}</td>
+                            <td class="{% if p.tarifa_activa == 1 %}fw-bold text-success{% endif %}">${{ "%.2f"|format(p.precio1) }}</td>
+                            <td class="{% if p.tarifa_activa == 2 %}fw-bold text-primary{% endif %}">${{ "%.2f"|format(p.precio2) }}</td>
+                            <td class="{% if p.tarifa_activa == 3 %}fw-bold text-dark{% endif %}">${{ "%.2f"|format(p.precio3) }}</td>
+                            <td>
+                                <span class="badge bg-warning text-dark fs-6">P{{ p.tarifa_activa }}: ${{ "%.2f"|format(p.precio_venta) }}</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick='editarProducto({{ p.id_repuesto }}, {{ p.descripcion|tojson }}, {{ p.marca|tojson }}, {{ p.categoria|tojson }}, {{ p.unidad|tojson }}, {{ p.costo_base }}, {{ p.aplica_iva|tojson }}, {{ p.tarifa_activa }})'>
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAtributo" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title" id="modalTitle">Nuevo Atributo</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="nuevo_valor" class="form-control text-uppercase" placeholder="Escriba aquí...">
+            </div>
+            <div class="modal-footer p-1">
+                <button type="button" class="btn btn-primary btn-sm w-100" onclick="guardarAtributo()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let tipoActual = '';
+
+function actualizarOpcionesTarifa() {
+    const costo = parseFloat(document.getElementById('costo_base').value || '0');
+    const esIva = document.getElementById('condicion_iva').value === 'iva';
+    const full = costo * (esIva ? 1.16 : 1.0);
+    document.getElementById('opt_p1').innerText = `Precio 1 (+20%): $${(full * 1.20).toFixed(2)}`;
+    document.getElementById('opt_p2').innerText = `Precio 2 (+25%): $${(full * 1.25).toFixed(2)}`;
+    document.getElementById('opt_p3').innerText = `Precio 3 (+30%): $${(full * 1.30).toFixed(2)}`;
+}
+
+document.getElementById('costo_base').addEventListener('input', actualizarOpcionesTarifa);
+document.getElementById('condicion_iva').addEventListener('change', actualizarOpcionesTarifa);
+actualizarOpcionesTarifa();
+
+function editarProducto(id, desc, marca, cat, unidad, costoBase, aplicaIva, tarifaActiva) {
+    document.getElementById('id_n').value = id;
+    document.getElementById('desc').value = desc;
+    document.getElementById('select_marca').value = marca;
+    document.getElementById('select_categoria').value = cat;
+    document.getElementById('select_unidad').value = unidad;
+    document.getElementById('costo_base').value = (costoBase || 10).toFixed(2);
+    document.getElementById('condicion_iva').value = aplicaIva ? 'iva' : 'exento';
+    document.getElementById('tarifa_activa').value = tarifaActiva || 3;
+    actualizarOpcionesTarifa();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function abrirModalAttr(tipo) {
+    tipoActual = tipo;
+    document.getElementById('modalTitle').innerText = 'Agregar ' + tipo.toUpperCase();
+    document.getElementById('nuevo_valor').value = '';
+    new bootstrap.Modal(document.getElementById('modalAtributo')).show();
+}
+
+function guardarAtributo() {
+    const valor = document.getElementById('nuevo_valor').value;
+    if (!valor) return alert("Ingrese un nombre");
+
+    fetch(`/api/nueva_${tipoActual}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `nombre=${encodeURIComponent(valor)}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.exito) {
+            location.reload();
+        } else {
+            alert(data.mensaje);
+        }
+    });
+}
+
+document.getElementById('formNuevo').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('/nuevo_producto', {
+        method: 'POST',
+        body: new FormData(this)
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.mensaje);
+        if (data.exito) location.reload();
+    });
+});
+</script>
+{% endblock %}

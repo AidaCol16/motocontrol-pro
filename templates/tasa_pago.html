@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <span class="badge bg-danger mb-1"><i class="fas fa-user-shield me-1"></i>MÓDULO EXCLUSIVO ADMINISTRADOR</span>
+            <h2 class="fw-bold mb-0"><i class="fas fa-money-bill-wave text-success me-2"></i>Control de Tasa BCV y Pago Móvil</h2>
+        </div>
+        <div class="text-end">
+            <div class="small text-muted">Tasa Activa en el Sistema</div>
+            <div class="fs-3 fw-bold text-primary">Bs. <span id="badge_tasa_actual">{{ "%.2f"|format(config_pago.tasa_bcv) }}</span> / $1</div>
+            {% if config_pago.ultima_actualizacion %}
+            <small class="text-muted">Actualizada: {{ config_pago.ultima_actualizacion }} ({{ config_pago.actualizado_por }})</small>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- COLUMNA IZQUIERDA: FORMULARIO DE TASA Y PAGO MÓVIL -->
+        <div class="col-lg-5">
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-sliders-h text-warning me-2"></i>Fijar Tasa Oficial y Datos Bancarios</h5>
+                </div>
+                <div class="card-body">
+                    <form id="formModuloTasa">
+                        <div class="p-3 rounded bg-primary-subtle border border-primary mb-3">
+                            <label class="form-label fw-bold text-primary mb-1">
+                                <i class="fas fa-coins me-1"></i>Tasa del Día (Bs. por cada $1 USD):
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-primary text-white fw-bold">Bs.</span>
+                                <input type="number" step="0.01" min="0.01" name="tasa_bcv" id="input_tasa_bcv"
+                                       class="form-control fw-bold fs-4 text-primary"
+                                       value="{{ '%.2f'|format(config_pago.tasa_bcv) }}" required>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                Al guardar, todos los precios en Bolívares del Catálogo y la Tienda del Cliente se recalculan automáticamente.
+                            </small>
+                        </div>
+
+                        <h6 class="fw-bold text-secondary border-bottom pb-2 mb-3">
+                            <i class="fas fa-mobile-alt me-1"></i>Datos de Pago Móvil para el Cliente Final
+                        </h6>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">Banco Receptor:</label>
+                            <input type="text" name="banco" class="form-control" value="{{ config_pago.banco }}" placeholder="Ej: 0102 - Banco de Venezuela" required>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small mb-1">Teléfono Pago Móvil:</label>
+                                <input type="text" name="telefono_pm" class="form-control fw-bold" value="{{ config_pago.telefono_pm }}" placeholder="0412-1234567" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold small mb-1">RIF / Cédula:</label>
+                                <input type="text" name="rif_negocio" class="form-control text-uppercase fw-bold" value="{{ config_pago.rif_negocio }}" placeholder="J-12345678-9" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small mb-1">Titular / Razón Social:</label>
+                            <input type="text" name="titular" class="form-control text-uppercase" value="{{ config_pago.titular }}" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm">
+                            <i class="fas fa-save me-2"></i>Actualizar Tasa y Pago Móvil
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- CALCULADORA RÁPIDA DIVISAS <-> BOLÍVARES -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Calculadora Rápida ($ ↔ Bs.)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-5">
+                            <label class="small fw-bold text-muted">Monto en USD ($)</label>
+                            <input type="number" step="0.01" id="calc_usd" class="form-control fw-bold" value="10.00">
+                        </div>
+                        <div class="col-2 text-center pt-4">
+                            <i class="fas fa-exchange-alt text-primary"></i>
+                        </div>
+                        <div class="col-5">
+                            <label class="small fw-bold text-muted">Equivalente en Bs.</label>
+                            <input type="text" id="calc_bs" class="form-control fw-bold bg-light text-success" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: SIMULACIÓN EN VIVO DE PRECIOS EN BS Y BITÁCORA -->
+        <div class="col-lg-7">
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tags text-info me-2"></i>Tabla de Precios Convertidos en Tiempo Real</h5>
+                    <span class="badge bg-warning text-dark">Vista Previa en Bs.</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                        <table class="table table-striped table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th class="ps-3">ID</th>
+                                    <th>Repuesto</th>
+                                    <th class="text-end">Precio USD ($)</th>
+                                    <th class="text-end pe-3">Precio en Bolívares (Bs.)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in productos %}
+                                <tr>
+                                    <td class="ps-3 fw-bold text-muted">#{{ p.id_repuesto }}</td>
+                                    <td>
+                                        <span class="fw-semibold">{{ p.descripcion }}</span>
+                                        <small class="text-muted d-block">{{ p.marca }} (P{{ p.tarifa_activa }})</small>
+                                    </td>
+                                    <td class="text-end fw-bold text-primary">${{ "%.2f"|format(p.precio_venta) }}</td>
+                                    <td class="text-end pe-3 fw-bold text-success fila-precio-bs" data-usd="{{ p.precio_venta }}">
+                                        Bs. {{ "%.2f"|format(p.precio_bs) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTORIAL DE CAMBIOS DE TASA -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Bitácora de Actualizaciones de Tasa</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Fecha y Hora</th>
+                                <th>Administrador</th>
+                                <th class="text-end pe-3">Tasa Fijada (Bs./$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in config_pago.get('historial_tasas', []) %}
+                            <tr>
+                                <td class="ps-3">{{ h.fecha }}</td>
+                                <td><span class="badge bg-dark">{{ h.usuario }}</span></td>
+                                <td class="text-end pe-3 fw-bold text-primary">Bs. {{ "%.2f"|format(h.tasa_bcv) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">
+                                    Aún no hay cambios registrados en el historial.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function actualizarSimulacionBs() {
+    const tasa = parseFloat(document.getElementById('input_tasa_bcv').value || '0');
+    const usdCalc = parseFloat(document.getElementById('calc_usd').value || '0');
+    document.getElementById('calc_bs').value = 'Bs. ' + (usdCalc * tasa).toFixed(2);
+
+    document.querySelectorAll('.fila-precio-bs').forEach(td => {
+        const usd = parseFloat(td.dataset.usd || '0');
+        td.innerText = 'Bs. ' + (usd * tasa).toFixed(2);
+    });
+}
+
+document.getElementById('input_tasa_bcv').addEventListener('input', actualizarSimulacionBs);
+document.getElementById('calc_usd').addEventListener('input', actualizarSimulacionBs);
+actualizarSimulacionBs();
+
+document.getElementById('formModuloTasa').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('/tasa_pago', { method: 'POST', body: new FormData(this) })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.mensaje);
+            if (data.exito) window.location.reload();
+        });
+});
+</script>
+{% endblock %}
+

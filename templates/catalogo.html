@@ -1,0 +1,582 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-3">
+    <!-- CABECERA DEL CATÁLOGO -->
+    <div class="card bg-dark text-white shadow mb-4 border-0" style="background: linear-gradient(135deg, #1a1a1a 0%, #003b7a 100%) !important;">
+        <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+                <span class="badge bg-warning text-dark fw-bold mb-2"><i class="fas fa-star me-1"></i>CATÁLOGO AL CLIENTE FINAL</span>
+                <h2 class="fw-bold mb-1"><i class="fas fa-th-large me-2 text-warning"></i>Catálogo de Repuestos MotoControl Pro</h2>
+                <p class="text-light opacity-75 mb-0">Precios finales de venta actualizados automáticamente según normativa venezolana (IVA / Exento).</p>
+            </div>
+            <div class="mt-3 mt-md-0 d-flex flex-wrap gap-2">
+                <a href="/tienda" class="btn btn-success btn-sm fw-bold">
+                    <i class="fas fa-store me-1"></i>Abrir Vista Cliente (Pago Móvil)
+                </a>
+                {% if session.get('rol') == 'admin' %}
+                <a href="/tasa_pago" class="btn btn-info btn-sm fw-bold text-dark">
+                    <i class="fas fa-money-bill-wave me-1"></i>Módulo Tasa BCV (Bs. {{ "%.2f"|format(config_pago.tasa_bcv) }})
+                </a>
+                {% endif %}
+                {% if session.get('rol') in ['admin', 'analista_compras'] %}
+                <a href="/nuevo_producto" class="btn btn-warning btn-sm fw-bold text-dark">
+                    <i class="fas fa-plus-circle me-1"></i>Gestionar Productos
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-primary"></i></span>
+                        <input type="text" id="filtroBusqueda" class="form-control" placeholder="Buscar por código, nombre o marca...">
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select id="filtroCategoria" class="form-select">
+                        <option value="">📂 Todas las Categorías</option>
+                        {% for c in categorias %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select id="filtroMarca" class="form-select">
+                        <option value="">🏷️ Todas las Marcas</option>
+                        {% for m in marcas %}
+                        <option value="{{ m }}">{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <select id="filtroEstado" class="form-select">
+                        <option value="todos">📦 Todos</option>
+                        <option value="disponible">✅ Con Stock</option>
+                        <option value="agotado">❌ Agotados</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTADOR DE RESULTADOS -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted fw-semibold" id="contadorCatalogo">Mostrando {{ productos|length }} productos</span>
+    </div>
+
+    <!-- GRILLA DE TARJETAS DEL CATÁLOGO -->
+    <div class="row g-4" id="gridCatalogo">
+        {% for p in productos %}
+        {% set desc_up = p.descripcion|upper %}
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 item-catalogo"
+             data-texto="{{ p.id_repuesto }} {{ p.descripcion|upper }} {{ p.marca|upper }} {{ p.categoria|upper }}"
+             data-categoria="{{ p.categoria }}"
+             data-marca="{{ p.marca }}"
+             data-disponible="{{ p.disponible }}">
+            <div class="card h-100 catalogo-card shadow-sm position-relative">
+                <!-- Badge de Estado Superior -->
+                <div class="position-absolute top-0 start-0 m-2" style="z-index: 2;">
+                    <span class="badge bg-dark opacity-75">#{{ p.id_repuesto }}</span>
+                </div>
+                <div class="position-absolute top-0 end-0 m-2" style="z-index: 2;">
+                    {% if p.disponible > 5 %}
+                    <span class="badge bg-success shadow-sm"><i class="fas fa-check-circle me-1"></i>Disponible ({{ p.disponible }})</span>
+                    {% elif p.disponible > 0 %}
+                    <span class="badge bg-warning text-dark shadow-sm"><i class="fas fa-exclamation-circle me-1"></i>Últimas {{ p.disponible }} und.</span>
+                    {% else %}
+                    <span class="badge bg-danger shadow-sm"><i class="fas fa-times-circle me-1"></i>Agotado</span>
+                    {% endif %}
+                </div>
+
+                <!-- Imagen o Ilustración Inteligente por Tipo de Repuesto -->
+                <div class="catalogo-img-wrapper d-flex align-items-center justify-content-center position-relative"
+                     {% if session.get('rol') in ['admin', 'analista_compras'] %}
+                     onclick='abrirModalEditar({{ p.id_repuesto }}, {{ p.descripcion|tojson }}, {{ p.costo_base|tojson }}, {{ p.aplica_iva|tojson }}, {{ p.tarifa_activa|tojson }}, {{ p.categoria|tojson }}, {{ (p.imagen_url or "")|tojson }})'
+                     title="Haz clic para cambiar la imagen o tarifa de venta"
+                     style="cursor: pointer; {% if not p.imagen_url %}{% if 'CAUCHO' in desc_up or 'CUACHO' in desc_up or 'LLANTA' in desc_up %}background: linear-gradient(135deg, #2b2d42, #4a4e69);{% elif 'BATERIA' in desc_up or 'CDI' in desc_up or 'ELECTR' in p.categoria %}background: linear-gradient(135deg, #003566, #0077b6);{% elif 'FRENO' in desc_up or 'PASTILLA' in desc_up %}background: linear-gradient(135deg, #6a040f, #d00000);{% elif 'KIT' in desc_up or 'CADENA' in desc_up or 'RODAJE' in desc_up %}background: linear-gradient(135deg, #1b4332, #2d6a4f);{% else %}background: linear-gradient(135deg, #212529, #495057);{% endif %}{% else %}background: #fff;{% endif %} height: 190px; overflow: hidden;"
+                     {% else %}
+                     style="{% if not p.imagen_url %}{% if 'CAUCHO' in desc_up or 'CUACHO' in desc_up or 'LLANTA' in desc_up %}background: linear-gradient(135deg, #2b2d42, #4a4e69);{% elif 'BATERIA' in desc_up or 'CDI' in desc_up or 'ELECTR' in p.categoria %}background: linear-gradient(135deg, #003566, #0077b6);{% elif 'FRENO' in desc_up or 'PASTILLA' in desc_up %}background: linear-gradient(135deg, #6a040f, #d00000);{% elif 'KIT' in desc_up or 'CADENA' in desc_up or 'RODAJE' in desc_up %}background: linear-gradient(135deg, #1b4332, #2d6a4f);{% else %}background: linear-gradient(135deg, #212529, #495057);{% endif %}{% else %}background: #fff;{% endif %} height: 190px; overflow: hidden;"
+                     {% endif %}>
+                    {% if p.imagen_url %}
+                        <img src="{{ p.imagen_url }}" alt="{{ p.descripcion }}" class="img-fluid" style="max-height: 100%; width: 100%; object-fit: contain; padding: 6px;">
+                    {% else %}
+                        <div class="text-center text-white">
+                            {% if 'CAUCHO' in desc_up or 'CUACHO' in desc_up or 'LLANTA' in desc_up %}
+                                <i class="fas fa-dharmachakra fa-4x mb-2 text-warning"></i>
+                            {% elif 'BATERIA' in desc_up %}
+                                <i class="fas fa-car-battery fa-4x mb-2 text-info"></i>
+                            {% elif 'CDI' in desc_up or 'ELECTR' in p.categoria %}
+                                <i class="fas fa-bolt fa-4x mb-2 text-warning"></i>
+                            {% elif 'FRENO' in desc_up or 'PASTILLA' in desc_up %}
+                                <i class="fas fa-compact-disc fa-4x mb-2 text-light"></i>
+                            {% elif 'KIT' in desc_up or 'CADENA' in desc_up or 'RODAJE' in desc_up %}
+                                <i class="fas fa-cogs fa-4x mb-2 text-warning"></i>
+                            {% elif 'FILTRO' in desc_up %}
+                                <i class="fas fa-filter fa-4x mb-2 text-info"></i>
+                            {% else %}
+                                <i class="fas fa-motorcycle fa-4x mb-2 text-light"></i>
+                            {% endif %}
+                            <div class="small text-uppercase opacity-75 fw-semibold">{{ p.categoria }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Cuerpo de la Tarjeta -->
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge bg-light text-secondary border text-uppercase">{{ p.marca }}</span>
+                        {% if p.aplica_iva %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.68rem;">IVA Incluido</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.68rem;">Exento</span>
+                        {% endif %}
+                    </div>
+                    <h5 class="card-title fw-bold text-dark mb-1" style="min-height: 2.5rem;">{{ p.descripcion }}</h5>
+                    <small class="text-muted mb-2"><i class="fas fa-tag me-1"></i>{{ p.categoria }}</small>
+
+                    {% if session.get('rol') in ['admin', 'analista_compras'] %}
+                    <!-- Vista rápida de los 3 precios solo para Admin / Compras -->
+                    <div class="d-flex justify-content-between bg-light rounded px-2 py-1 mb-2 border" style="font-size: 0.73rem;">
+                        <span class="{% if p.tarifa_activa == 1 %}fw-bold text-primary{% else %}text-muted{% endif %}">P1 (20%): ${{ "%.2f"|format(p.precio1) }}</span>
+                        <span class="{% if p.tarifa_activa == 2 %}fw-bold text-primary{% else %}text-muted{% endif %}">P2 (25%): ${{ "%.2f"|format(p.precio2) }}</span>
+                        <span class="{% if p.tarifa_activa == 3 %}fw-bold text-primary{% else %}text-muted{% endif %}">P3 (30%): ${{ "%.2f"|format(p.precio3) }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted d-block" style="font-size: 0.70rem;">PRECIO DE VENTA (P{{ p.tarifa_activa }})</small>
+                            <span class="fs-4 fw-bold text-primary">${{ "%.2f"|format(p.precio_venta) }}</span>
+                            <small class="text-muted">/ {{ p.unidad }}</small>
+                        </div>
+                        <div class="d-flex gap-1">
+                            {% if session.get('rol') in ['admin', 'analista_compras'] %}
+                            <button type="button" class="btn btn-outline-primary btn-sm"
+                                    title="Subir Foto / Ajustar Tarifa de Precio"
+                                    onclick='abrirModalEditar({{ p.id_repuesto }}, {{ p.descripcion|tojson }}, {{ p.costo_base|tojson }}, {{ p.aplica_iva|tojson }}, {{ p.tarifa_activa|tojson }}, {{ p.categoria|tojson }}, {{ (p.imagen_url or "")|tojson }})'>
+                                <i class="fas fa-camera"></i>
+                            </button>
+                            {% endif %}
+
+                            {% if p.disponible > 0 %}
+                            <button type="button" class="btn btn-warning btn-sm fw-bold text-dark"
+                                    onclick='abrirModalPedido({{ p.id_repuesto }}, {{ p.descripcion|tojson }}, {{ p.marca|tojson }}, {{ p.disponible }}, {{ p.precio_venta }})'>
+                                <i class="fas fa-cart-plus me-1"></i>Pedir
+                            </button>
+                            {% else %}
+                            <button type="button" class="btn btn-secondary btn-sm" disabled>
+                                Agotado
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="sinResultados" class="text-center py-5 d-none">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No se encontraron repuestos con esos filtros.</h5>
+    </div>
+</div>
+
+<!-- MODAL 1: REALIZAR PEDIDO DIRECTO DESDE EL CATÁLOGO CON CÁLCULO DE TOTAL -->
+<div class="modal fade" id="modalPedidoRapido" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold"><i class="fas fa-cart-plus me-2"></i>Solicitar Pedido desde Catálogo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPedidoCatalogo">
+                <div class="modal-body">
+                    <input type="hidden" name="id_p" id="cat_id_p">
+                    <div class="alert alert-secondary py-2 mb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold text-dark" id="cat_prod_nombre"></div>
+                            <small class="text-success fw-bold" id="cat_prod_disp"></small>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted d-block">Precio Unitario</small>
+                            <span class="fs-5 fw-bold text-primary" id="cat_precio_unit">$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3 align-items-center">
+                        <div class="col-6">
+                            <label class="form-label fw-bold mb-1">Cantidad a Pedir:</label>
+                            <input type="number" name="cant" id="cat_cant" class="form-control form-control-lg fw-bold" min="1" value="1" required>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 rounded bg-light border text-end">
+                                <small class="text-muted d-block fw-bold">TOTAL A PAGAR</small>
+                                <span class="fs-4 fw-bold text-success" id="cat_total_pagar">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 position-relative">
+                        <label class="form-label fw-bold">RIF / Cédula del Cliente:</label>
+                        <input type="text" name="cliente_rif" id="cat_cli_rif" class="form-control text-uppercase" placeholder="V-12345678" autocomplete="off" required>
+                        <ul id="cat_lista_cli" class="list-group position-absolute w-100 shadow" style="z-index:1050; display:none; max-height: 160px; overflow-y: auto;"></ul>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold">Nombre o Razón Social:</label>
+                        <input type="text" name="cliente" id="cat_cli_nom" class="form-control text-uppercase" placeholder="Nombre del cliente" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">
+                        <i class="fas fa-check-circle me-1"></i>Confirmar Reserva de Pedido
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: SUBIR FOTO Y GESTIONAR LOS 3 PRECIOS DE VENTA (NORMA VENEZOLANA) -->
+<div class="modal fade" id="modalEditarCatalogo" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fas fa-camera me-2 text-warning"></i>Imagen y Escala de Precios de Venta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarCatalogo" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="id_repuesto" id="edit_id_repuesto">
+                    <h6 class="fw-bold text-primary mb-2" id="edit_nombre_repuesto"></h6>
+
+                    <!-- Vista Previa de la Imagen -->
+                    <div class="text-center mb-3 p-2 border rounded bg-light" style="min-height: 130px; display: flex; align-items: center; justify-content: center;">
+                        <img id="preview_img" src="" alt="Vista previa" style="max-height: 130px; max-width: 100%; display: none; border-radius: 8px;">
+                        <div id="preview_placeholder" class="text-muted small">
+                            <i class="fas fa-image fa-2x d-block mb-1 opacity-50"></i>
+                            Selecciona una foto desde tu PC para este repuesto
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-primary small mb-1"><i class="fas fa-upload me-1"></i>Subir Imagen desde tu PC:</label>
+                            <input type="file" name="imagen_file" id="input_imagen_file" class="form-control form-control-sm" accept=".png,.jpg,.jpeg,.webp,.gif,.bmp">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small mb-1">Costo Base ($):</label>
+                            <input type="number" step="0.01" min="0.01" name="costo_base" id="edit_costo_base" class="form-control form-control-sm fw-bold" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small mb-1">Condición Fiscal:</label>
+                            <select name="condicion_iva" id="edit_condicion_iva" class="form-select form-select-sm fw-semibold">
+                                <option value="iva">Gravado (+16% IVA)</option>
+                                <option value="exento">Exento (0% IVA)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small mb-1">Costo Full ($):</label>
+                            <input type="text" id="edit_costo_full_vista" class="form-control form-control-sm bg-light fw-bold text-secondary" readonly>
+                        </div>
+                    </div>
+
+                    <!-- TARJETAS SELECCIONABLES DE LOS 3 PRECIOS DE VENTA (20%, 25%, 30%) -->
+                    <label class="form-label fw-bold small text-dark mb-1">
+                        <i class="fas fa-tags me-1 text-success"></i>Selecciona el Precio de Venta Anclado al Catálogo:
+                    </label>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="card p-2 text-center border cursor-pointer h-100" id="card_p1" style="cursor:pointer;">
+                                <input type="radio" name="tarifa_activa" value="1" id="radio_p1" class="form-check-input mx-auto mb-1">
+                                <div class="small fw-bold text-secondary">Precio 1 (+20%)</div>
+                                <div class="fs-5 fw-bold text-success" id="calc_p1">$0.00</div>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <label class="card p-2 text-center border cursor-pointer h-100" id="card_p2" style="cursor:pointer;">
+                                <input type="radio" name="tarifa_activa" value="2" id="radio_p2" class="form-check-input mx-auto mb-1">
+                                <div class="small fw-bold text-secondary">Precio 2 (+25%)</div>
+                                <div class="fs-5 fw-bold text-primary" id="calc_p2">$0.00</div>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <label class="card p-2 text-center border cursor-pointer h-100" id="card_p3" style="cursor:pointer;">
+                                <input type="radio" name="tarifa_activa" value="3" id="radio_p3" class="form-check-input mx-auto mb-1" checked>
+                                <div class="small fw-bold text-secondary">Precio 3 (+30%)</div>
+                                <div class="fs-5 fw-bold text-dark" id="calc_p3">$0.00</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small mb-1">Categoría:</label>
+                            <input type="text" name="categoria" id="edit_categoria" class="form-control form-control-sm text-uppercase">
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold small text-secondary mb-1">URL de imagen actual (opcional):</label>
+                            <input type="text" name="imagen_url" id="edit_imagen_url" class="form-control form-control-sm" placeholder="/static/uploads/...">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success fw-bold">
+                        <i class="fas fa-save me-1"></i>Guardar Imagen y Precio Anclado
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: CONFIGURAR DATOS DE PAGO MÓVIL Y TASA BCV -->
+<div class="modal fade" id="modalConfigPagoMovil" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fas fa-mobile-alt text-warning me-2"></i>Configurar Pago Móvil y Tasa BCV</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formConfigPagoMovil">
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small">Banco Receptor:</label>
+                        <input type="text" name="banco" class="form-control" value="{{ config_pago.banco }}" required>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">Teléfono Pago Móvil:</label>
+                            <input type="text" name="telefono_pm" class="form-control" value="{{ config_pago.telefono_pm }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">RIF / Cédula del Negocio:</label>
+                            <input type="text" name="rif_negocio" class="form-control text-uppercase" value="{{ config_pago.rif_negocio }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small">Titular / Razón Social:</label>
+                        <input type="text" name="titular" class="form-control text-uppercase" value="{{ config_pago.titular }}" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-primary">Tasa BCV del Día (Bs. por cada $1 USD):</label>
+                        <input type="number" step="0.01" min="1" name="tasa_bcv" class="form-control fw-bold border-primary" value="{{ config_pago.tasa_bcv }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Guardar Datos de Pago Móvil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.catalogo-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px !important;
+}
+.catalogo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+}
+</style>
+
+<script>
+const IVA_RATE = 0.16;
+let precioUnitarioPedidoActual = 0;
+
+// --- 1. FILTRADO EN TIEMPO REAL DEL CATÁLOGO ---
+function filtrarCatalogo() {
+    const q = document.getElementById('filtroBusqueda').value.trim().toUpperCase();
+    const cat = document.getElementById('filtroCategoria').value.toUpperCase();
+    const marca = document.getElementById('filtroMarca').value.toUpperCase();
+    const estado = document.getElementById('filtroEstado').value;
+
+    const items = document.querySelectorAll('.item-catalogo');
+    let visibles = 0;
+
+    items.forEach(item => {
+        const texto = item.dataset.texto || '';
+        const itemCat = (item.dataset.categoria || '').toUpperCase();
+        const itemMarca = (item.dataset.marca || '').toUpperCase();
+        const disp = parseInt(item.dataset.disponible || '0', 10);
+
+        const coincideTexto = !q || texto.includes(q);
+        const coincideCat = !cat || itemCat === cat;
+        const coincideMarca = !marca || itemMarca === marca;
+        const coincideEstado = (estado === 'todos') ||
+                               (estado === 'disponible' && disp > 0) ||
+                               (estado === 'agotado' && disp <= 0);
+
+        if (coincideTexto && coincideCat && coincideMarca && coincideEstado) {
+            item.classList.remove('d-none');
+            visibles++;
+        } else {
+            item.classList.add('d-none');
+        }
+    });
+
+    document.getElementById('contadorCatalogo').innerText = `Mostrando ${visibles} producto(s)`;
+    document.getElementById('sinResultados').classList.toggle('d-none', visibles > 0);
+}
+
+['filtroBusqueda', 'filtroCategoria', 'filtroMarca', 'filtroEstado'].forEach(id => {
+    document.getElementById(id).addEventListener('input', filtrarCatalogo);
+    document.getElementById(id).addEventListener('change', filtrarCatalogo);
+});
+
+// --- 2. MODAL PEDIDO RÁPIDO DESDE CATÁLOGO ---
+function actualizarTotalPedido() {
+    const cant = parseInt(document.getElementById('cat_cant').value || '1', 10);
+    const total = (cant > 0 ? cant : 0) * precioUnitarioPedidoActual;
+    document.getElementById('cat_total_pagar').innerText = `$${total.toFixed(2)}`;
+}
+
+document.getElementById('cat_cant').addEventListener('input', actualizarTotalPedido);
+
+function abrirModalPedido(id, desc, marca, disp, precioVenta) {
+    precioUnitarioPedidoActual = parseFloat(precioVenta || 0);
+    document.getElementById('cat_id_p').value = id;
+    document.getElementById('cat_prod_nombre').innerText = `#${id} - ${desc} (${marca})`;
+    document.getElementById('cat_prod_disp').innerText = `Disponible: ${disp} unidad(es)`;
+    document.getElementById('cat_precio_unit').innerText = `$${precioUnitarioPedidoActual.toFixed(2)}`;
+    document.getElementById('cat_cant').max = disp;
+    document.getElementById('cat_cant').value = 1;
+    actualizarTotalPedido();
+    new bootstrap.Modal(document.getElementById('modalPedidoRapido')).show();
+}
+
+document.getElementById('cat_cli_rif').addEventListener('input', function() {
+    let q = this.value.trim();
+    let lista = document.getElementById('cat_lista_cli');
+    if (q.length < 1) { lista.style.display = 'none'; return; }
+
+    fetch(`/api/buscar_cliente_smart/${encodeURIComponent(q)}`)
+        .then(res => res.json())
+        .then(data => {
+            lista.innerHTML = '';
+            if (data.encontrado) {
+                data.resultados.forEach(c => {
+                    let li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action';
+                    li.style.cursor = 'pointer';
+                    li.innerHTML = `<strong>${c.id_proveedor}</strong> - ${c.nombre_empresa}`;
+                    li.onclick = () => {
+                        document.getElementById('cat_cli_rif').value = c.id_proveedor;
+                        document.getElementById('cat_cli_nom').value = c.nombre_empresa;
+                        lista.style.display = 'none';
+                    };
+                    lista.appendChild(li);
+                });
+                lista.style.display = 'block';
+            } else {
+                lista.style.display = 'none';
+            }
+        });
+});
+
+document.getElementById('formPedidoCatalogo').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('/pedido_cliente', { method: 'POST', body: new FormData(this) })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.mensaje);
+            if (data.exito) window.location.href = '/lista_pedidos';
+        });
+});
+
+// --- 3. CÁLCULO EN VIVO DE PRECIO 1 (20%), PRECIO 2 (25%), PRECIO 3 (30%) ---
+function recalcularPreciosModal() {
+    const costoBase = parseFloat(document.getElementById('edit_costo_base').value || '0');
+    const esIva = document.getElementById('edit_condicion_iva').value === 'iva';
+    const costoFull = costoBase * (esIva ? (1 + IVA_RATE) : 1.0);
+
+    const p1 = costoFull * 1.20;
+    const p2 = costoFull * 1.25;
+    const p3 = costoFull * 1.30;
+
+    document.getElementById('edit_costo_full_vista').value = `$${costoFull.toFixed(2)}`;
+    document.getElementById('calc_p1').innerText = `$${p1.toFixed(2)}`;
+    document.getElementById('calc_p2').innerText = `$${p2.toFixed(2)}`;
+    document.getElementById('calc_p3').innerText = `$${p3.toFixed(2)}`;
+}
+
+document.getElementById('edit_costo_base').addEventListener('input', recalcularPreciosModal);
+document.getElementById('edit_condicion_iva').addEventListener('change', recalcularPreciosModal);
+
+function mostrarPreview(src) {
+    const img = document.getElementById('preview_img');
+    const ph = document.getElementById('preview_placeholder');
+    if (src) {
+        img.src = src;
+        img.style.display = 'block';
+        ph.style.display = 'none';
+    } else {
+        img.src = '';
+        img.style.display = 'none';
+        ph.style.display = 'block';
+    }
+}
+
+document.getElementById('input_imagen_file').addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => mostrarPreview(e.target.result);
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+
+document.getElementById('edit_imagen_url').addEventListener('input', function() {
+    if (!document.getElementById('input_imagen_file').files.length) {
+        mostrarPreview(this.value.trim());
+    }
+});
+
+function abrirModalEditar(id, desc, costoBase, aplicaIva, tarifaActiva, categoria, imagenUrl) {
+    document.getElementById('edit_id_repuesto').value = id;
+    document.getElementById('edit_nombre_repuesto').innerText = `#${id} - ${desc}`;
+    document.getElementById('edit_costo_base').value = (costoBase || 0).toFixed(2);
+    document.getElementById('edit_condicion_iva').value = aplicaIva ? 'iva' : 'exento';
+    document.getElementById('edit_categoria').value = categoria || '';
+    document.getElementById('edit_imagen_url').value = imagenUrl || '';
+    document.getElementById('input_imagen_file').value = '';
+
+    const radio = document.getElementById(`radio_p${tarifaActiva || 3}`);
+    if (radio) radio.checked = true;
+
+    recalcularPreciosModal();
+    mostrarPreview(imagenUrl);
+    new bootstrap.Modal(document.getElementById('modalEditarCatalogo')).show();
+}
+
+document.getElementById('formEditarCatalogo').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('/api/actualizar_catalogo', { method: 'POST', body: new FormData(this) })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.mensaje);
+            if (data.exito) window.location.reload();
+        });
+});
+
+document.getElementById('formConfigPagoMovil').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('/api/configurar_pago_movil', { method: 'POST', body: new FormData(this) })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.mensaje);
+            if (data.exito) window.location.reload();
+        });
+});
+</script>
+{% endblock %}

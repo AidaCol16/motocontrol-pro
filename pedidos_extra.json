@@ -1,0 +1,12 @@
+{
+  "6": {
+    "telefono": "0416-9510795",
+    "metodo_pago": "Pago Móvil",
+    "referencia_pm": "645879",
+    "banco_origen": "Provincial",
+    "precio_unitario_usd": 24.13,
+    "total_usd": 24.13,
+    "total_bs": 21593.7,
+    "tasa_bcv": 894.89
+  }
+}

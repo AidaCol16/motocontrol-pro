@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">🤝 Gestión de Socios de Negocio</h3>
+            <a href="/" class="btn btn-outline-light btn-sm">Volver al Inventario</a>
+        </div>
+        <div class="card-body">
+            <!-- Formulario Inteligente -->
+            <form id="formSocio" class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">RIF / ID (Formato: V-12345678-9):</label>
+                    <input type="text" name="rif" id="rif_input" class="form-control" placeholder="V-12345678-9" required>
+                    <div id="rif_status" class="form-text"></div>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Nombre o Razón Social:</label>
+                    <input type="text" name="nom" id="nom_input" class="form-control" style="text-transform:uppercase" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Teléfono:</label>
+                    <!-- Agregamos el id correcto y un placeholder informativo -->
+                    <input type="text" name="tlf" id="tlf_input" class="form-control" placeholder="Ej: 04125551234 o +34..." required>
+                    <div class="form-text small">Solo números, "+" y guiones.</div>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label fw-bold">Ubicación / Dirección:</label>
+                    <input type="text" name="dir" id="dir_input" class="form-control" style="text-transform:uppercase">
+                </div>
+                
+                <div class="col-md-12">
+                    <label class="form-label d-block text-primary fw-bold">Tipo de Socio:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="es_proveedor" id="checkProv" checked>
+                        <label class="form-check-label" for="checkProv">Es Proveedor</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="es_cliente" id="checkCli">
+                        <label class="form-check-label" for="checkCli">Es Cliente</label>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" id="btnGuardar" class="btn btn-primary w-100">Guardar Socio</button>
+                </div>
+            </form>
+
+            <hr>
+
+            <!-- Tabla de Socios -->
+            <table class="table table-striped table-hover mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>RIF / ID</th>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Roles</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in socios %}
+                    <tr>
+                        <td>{{ s.id_proveedor }}</td>
+                        <td>{{ s.nombre_empresa }}</td>
+                        <td>{{ s.telefono }}</td>
+                        <td>
+                            {% if s.es_proveedor %}<span class="badge bg-info">Proveedor</span>{% endif %}
+                            {% if s.es_cliente %}<span class="badge bg-success">Cliente</span>{% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="cargarEnFormulario('{{s.id_proveedor}}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- NUEVO: FILTRO PARA TELÉFONO (Solo números, + y -) ---
+    document.getElementById('tlf_input').addEventListener('input', function (e) {
+        // Borra cualquier carácter que no sea número, signo más o guion
+        this.value = this.value.replace(/[^0-9+\-]/g, '');
+    });
+
+    // Lógica de búsqueda automática
+    document.getElementById('rif_input').addEventListener('blur', function() {
+        let rif = this.value.toUpperCase().trim();
+        if (rif.length < 5) return;
+
+        fetch(`/api/buscar_socio/${rif}`)
+            .then(res => res.json())
+            .then(data => {
+                const btn = document.getElementById('btnGuardar');
+                if (data.encontrado) {
+                    document.getElementById('nom_input').value = data.nom;
+                    document.getElementById('tlf_input').value = data.tlf;
+                    document.getElementById('dir_input').value = data.dir;
+                    document.getElementById('checkCli').checked = data.cli === 1;
+                    document.getElementById('checkProv').checked = data.prov === 1;
+                    
+                    btn.className = "btn btn-warning w-100";
+                    btn.innerHTML = "Actualizar Socio Existente";
+                    document.getElementById('rif_status').innerHTML = '<span class="text-primary small">Socio encontrado. Puede editar los datos.</span>';
+                } else {
+                    btn.className = "btn btn-primary w-100";
+                    btn.innerHTML = "Guardar Nuevo Socio";
+                    document.getElementById('rif_status').innerHTML = '<span class="text-success small">Nuevo RIF detectado.</span>';
+                }
+            });
+    });
+
+    function cargarEnFormulario(rif) {
+        document.getElementById('rif_input').value = rif;
+        document.getElementById('rif_input').focus();
+        document.getElementById('rif_input').blur(); 
+    }
+
+    // Envío del formulario
+    document.getElementById('formSocio').addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch('/socios', {
+            method: 'POST',
+            body: new FormData(this)
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.mensaje);
+            if(data.exito) window.location.reload();
+        });
+    });
+</script>
+{% endblock %}

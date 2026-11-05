@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary fw-bold mb-0"><i class="fas fa-boxes me-2"></i>Inventario Real de Repuestos</h2>
+        {% if session.get('rol') in ['admin', 'analista_compras'] %}
+        <div>
+            <a href="/nuevo_producto" class="btn btn-primary btn-sm me-1"><i class="fas fa-plus me-1"></i>Nuevo Repuesto</a>
+            <a href="/compras" class="btn btn-success btn-sm"><i class="fas fa-cart-plus me-1"></i>Ingresar Compra</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if kpis %}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-start border-primary border-4 shadow-sm h-100">
+                <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Total Ítems</div>
+                        <div class="fs-3 fw-bold text-dark">{{ kpis.total }}</div>
+                        <small class="text-muted">{{ kpis.unidades_totales }} unds. disponibles</small>
+                    </div>
+                    <i class="fas fa-Layer-group fa-cubes fa-2x text-primary opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-start border-success border-4 shadow-sm h-100">
+                <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Disponibles</div>
+                        <div class="fs-3 fw-bold text-success">{{ kpis.disponibles }}</div>
+                        <small class="text-muted">Stock óptimo (&gt; 5)</small>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x text-success opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-start border-warning border-4 shadow-sm h-100">
+                <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Bajo Stock</div>
+                        <div class="fs-3 fw-bold text-warning">{{ kpis.bajo_stock }}</div>
+                        <small class="text-muted">Reponer pronto (1 a 5)</small>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-start border-danger border-4 shadow-sm h-100">
+                <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Agotados</div>
+                        <div class="fs-3 fw-bold text-danger">{{ kpis.agotados }}</div>
+                        <small class="text-muted">Sin disponibilidad</small>
+                    </div>
+                    <i class="fas fa-times-circle fa-2x text-danger opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow">
+        <div class="card-body">
+            <table id="tablaInventario" class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Descripción del Repuesto</th>
+                        <th>Marca</th>
+                        <th>Categoría</th>
+                        <th class="text-center">Físico</th>
+                        <th class="text-center">Reservado</th>
+                        <th class="text-center">Disponible</th>
+                        <th class="text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in productos %}
+                    <tr>
+                        <td class="fw-bold text-secondary" data-order="{{ p.id_repuesto }}">#{{ p.id_repuesto }}</td>
+                        <td class="fw-semibold">{{ p.descripcion }}</td>
+                        <td>{{ p.marca }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ p.categoria }}</span></td>
+                        <td class="text-center text-muted">{{ p.stock }} <small>{{ p.unidad }}</small></td>
+                        <td class="text-center">
+                            {% if p.reservado > 0 %}
+                            <span class="badge bg-info text-dark">{{ p.reservado }}</span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold text-center fs-6">{{ p.disponible }}</td>
+                        <td class="text-center">
+                            {% if p.disponible > 5 %}
+                            <span class="badge bg-success px-3 py-2">Disponible</span>
+                            {% elif p.disponible > 0 %}
+                            <span class="badge bg-warning text-dark px-3 py-2">Bajo Stock</span>
+                            {% else %}
+                            <span class="badge bg-danger px-3 py-2">Agotado</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#tablaInventario').DataTable({
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel"></i> Excel',
+                className: 'btn btn-success btn-sm',
+                title: 'Inventario_MotoControl_' + new Date().toLocaleDateString()
+            },
+            {
+                extend: 'pdfHtml5',
+                text: '<i class="fas fa-file-pdf"></i> PDF',
+                className: 'btn btn-danger btn-sm',
+                title: 'Inventario de Repuestos - MotoControl Pro',
+                customize: function (doc) {
+                    doc.styles.tableHeader.fillColor = '#212529';
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print"></i> Imprimir',
+                className: 'btn btn-secondary btn-sm'
+            }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        }
+    });
+});
+</script>
+
+<style>
+    .dt-buttons {
+        margin-bottom: 15px;
+    }
+    .btn-group .btn {
+        margin-right: 5px;
+        border-radius: 5px !important;
+    }
+</style>
+{% endblock %}

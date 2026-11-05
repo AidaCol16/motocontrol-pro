@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-2">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i> Nuevo / Actualizar Acceso</h5>
+                </div>
+                <div class="card-body bg-light">
+                    <form id="formUsuario">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-secondary">Nombre de Usuario</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-at"></i></span>
+                                <input type="text" name="username" id="new_user" class="form-control" placeholder="Ej: perez_j" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-secondary">Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="password" name="password" id="new_pass" class="form-control" placeholder="••••••••" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-secondary">Nivel de Acceso (Rol)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                                <select name="rol" id="new_rol" class="form-select border-primary-subtle" required>
+                                    <option value="usuario_pedidos">Vendedor / Pedidos</option>
+                                    <option value="analista_compras">Analista de Compras</option>
+                                    <option value="admin">Administrador Total</option>
+                                    <option value="cliente">Cliente Externo (Solo Tienda y Pedidos)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="guardarUsuario()" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                            <i class="fas fa-save me-2"></i> Guardar Usuario
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3 small shadow-sm">
+                <i class="fas fa-info-circle me-1"></i> 
+                <strong>Nota:</strong> Si escribes un nombre de usuario existente, se actualizará su contraseña y su rol.
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i> Usuarios con Acceso al Sistema</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="ps-3 text-center" style="width: 70px;">ID</th>
+                                    <th>Usuario</th>
+                                    <th>Rol / Perfil</th>
+                                    <th class="text-center">Estado</th>
+                                    <th class="text-center pe-3">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in usuarios %}
+                                <tr>
+                                    <td class="ps-3 text-center text-muted fw-bold">{{ u.id_usuario }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-dark text-white p-2 me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                {{ u.username[:2].upper() }}
+                                            </div>
+                                            <span class="fw-bold">{{ u.username }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if u.rol == 'admin' %}
+                                            <span class="badge bg-danger text-uppercase px-3 py-2"><i class="fas fa-user-shield me-1"></i> ADMIN</span>
+                                        {% elif u.rol == 'analista_compras' %}
+                                            <span class="badge bg-warning text-dark text-uppercase px-3 py-2"><i class="fas fa-truck-loading me-1"></i> ANALISTA COMPRAS</span>
+                                        {% else %}
+                                            <span class="badge bg-info text-dark text-uppercase px-3 py-2"><i class="fas fa-user me-1"></i> VENDEDOR / PEDIDOS</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-success fw-bold small"><i class="fas fa-check-circle"></i> Activo</span>
+                                    </td>
+                                    <td class="text-center pe-3">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="cargarUsuario('{{ u.username }}', '{{ u.rol }}')" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        {% if session.get('user_id') != u.id_usuario %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarUsuario({{ u.id_usuario }}, '{{ u.username }}')" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function cargarUsuario(username, rol) {
+        document.getElementById('new_user').value = username;
+        document.getElementById('new_rol').value = (rol === 'vendedor') ? 'usuario_pedidos' : rol;
+        document.getElementById('new_pass').focus();
+    }
+
+    function guardarUsuario() {
+        const u = document.getElementById('new_user').value.trim();
+        const p = document.getElementById('new_pass').value.trim();
+        
+        if (!u || !p) {
+            alert("Por favor completa todos los campos.");
+            return;
+        }
+
+        const formData = new FormData(document.getElementById('formUsuario'));
+        fetch('/usuarios', { 
+            method: 'POST', 
+            body: formData 
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.exito) {
+                alert("✅ " + data.mensaje);
+                location.reload();
+            } else {
+                alert("❌ Error: " + data.mensaje);
+            }
+        })
+        .catch(err => {
+            alert("Error de conexión al servidor");
+            console.error(err);
+        });
+    }
+
+    function eliminarUsuario(id, nombre) {
+        if (!confirm(`¿Seguro que deseas eliminar al usuario '${nombre}'?`)) return;
+        fetch(`/api/eliminar_usuario/${id}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.mensaje);
+                if (data.exito) location.reload();
+            });
+    }
+</script>
+{% endblock %}
