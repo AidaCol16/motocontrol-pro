@@ -15,12 +15,88 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 CATALOGO_JSON = os.path.join(BASE_DIR, 'catalogo_meta.json')
 PEDIDOS_EXTRA_JSON = os.path.join(BASE_DIR, 'pedidos_extra.json')
+SERVICIOS_JSON = os.path.join(BASE_DIR, 'servicios_taller.json')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 ROLES_VENTAS = ['admin', 'analista_compras', 'usuario_pedidos', 'vendedor']
 ROLES_COMPRAS = ['admin', 'analista_compras']
 IVA_VENEZUELA = 0.16  # 16% IVA estándar en Venezuela
+
+SERVICIOS_CATALOGO_DEFAULT = [
+    {
+        "id_servicio": 101,
+        "nombre": "CAMBIO DE ACEITE Y REVISIÓN DE NIVELES",
+        "categoria": "MOTOR",
+        "duracion": "25 min",
+        "descripcion": "Drenado de aceite usado, carga de aceite nuevo, limpieza de cedazo/filtro y revisión de tensión de cadena.",
+        "precio_usd": 5.00,
+        "activo": True
+    },
+    {
+        "id_servicio": 102,
+        "nombre": "INSTALACIÓN DE KIT DE ARRASTRE COMPLETO",
+        "categoria": "TRANSMISIÓN",
+        "duracion": "45 min",
+        "descripcion": "Desmontaje e instalación de corona, piñón y cadena reforzada, alineación de rueda trasera y lubricación.",
+        "precio_usd": 10.00,
+        "activo": True
+    },
+    {
+        "id_servicio": 103,
+        "nombre": "SERVICIO DE FRENOS (PASTILLAS O BANDAS)",
+        "categoria": "FRENOS",
+        "duracion": "30 min",
+        "descripcion": "Cambio de pastillas o bandas de freno, limpieza de cálipers/tambor, purga de liga y graduación de frenado.",
+        "precio_usd": 6.00,
+        "activo": True
+    },
+    {
+        "id_servicio": 104,
+        "nombre": "DIAGNÓSTICO Y REPARACIÓN ELÉCTRICA (CDI / BATERÍA)",
+        "categoria": "ELÉCTRICO",
+        "duracion": "1 hora",
+        "descripcion": "Chequeo de sistema de carga (estator/regulador), revisión de CDI, bujía, luces, arranque y batería.",
+        "precio_usd": 12.00,
+        "activo": True
+    },
+    {
+        "id_servicio": 105,
+        "nombre": "ENTONACIÓN GENERAL Y LIMPIEZA DE CARBURADOR",
+        "categoria": "MOTOR",
+        "duracion": "1.5 horas",
+        "descripcion": "Limpieza profunda de carburador, calibración de válvulas (taquetes), limpieza de filtro de aire y ajuste de mínimo.",
+        "precio_usd": 18.00,
+        "activo": True
+    },
+    {
+        "id_servicio": 106,
+        "nombre": "MONTURA DE CAUCHO Y CAMBIO DE ROLINERAS",
+        "categoria": "CAUCHOS Y RUEDAS",
+        "duracion": "40 min",
+        "descripcion": "Desmontaje de rueda, montura de caucho/tripa y revisión o reemplazo de rodamientos (rolineras).",
+        "precio_usd": 8.00,
+        "activo": True
+    },
+    {
+        "id_servicio": 107,
+        "nombre": "MANTENIMIENTO PREVENTIVO COMPLETO (SERVICIO FULL)",
+        "categoria": "MANTENIMIENTO",
+        "duracion": "2.5 horas",
+        "descripcion": "Entonación de motor, limpieza de carburador, engrase de ejes/dirección, ajuste de frenos, guayas, luces y cadena.",
+        "precio_usd": 25.00,
+        "activo": True
+    },
+    {
+        "id_servicio": 108,
+        "nombre": "AJUSTE O CAMBIO DE DISCOS DE CROCHE Y GUAYAS",
+        "categoria": "TRANSMISIÓN",
+        "duracion": "1 hora",
+        "descripcion": "Reemplazo de discos de embrague (croche) o guaya, graduación de leva y verificación de cambios.",
+        "precio_usd": 12.00,
+        "activo": True
+    }
+]
 
 COSTOS_REFERENCIA_DEFAULT = {
     1: 18.00,   # KIT DE ARRASTRE
@@ -135,6 +211,86 @@ def guardar_pedidos_extra(datos):
                 """), {"v": texto_json})
         except Exception as e:
             print(f"Aviso kv_store pedidos: {e}")
+
+_CACHE_SERVICIOS = {"data": None, "ts": 0.0}
+
+def cargar_datos_servicios():
+    ahora = time.time()
+    if _CACHE_SERVICIOS["data"] is not None and (ahora - _CACHE_SERVICIOS["ts"]) < 30.0:
+        return _CACHE_SERVICIOS["data"]
+
+    datos = None
+    if ES_POSTGRES:
+        try:
+            df_kv = consultar("SELECT valor FROM dbo.kv_store WHERE clave = 'servicios_taller'")
+            if not df_kv.empty and df_kv['valor'].iloc[0]:
+                datos = json.loads(df_kv['valor'].iloc[0])
+        except Exception:
+            pass
+    if datos is None and os.path.exists(SERVICIOS_JSON):
+        try:
+            with open(SERVICIOS_JSON, 'r', encoding='utf-8') as f:
+                datos = json.load(f)
+        except Exception:
+            datos = None
+
+    if not isinstance(datos, dict):
+        datos = {
+            "catalogo": [dict(s) for s in SERVICIOS_CATALOGO_DEFAULT],
+            "ordenes": []
+        }
+        guardar_datos_servicios(datos)
+    else:
+        if "catalogo" not in datos or not datos["catalogo"]:
+            datos["catalogo"] = [dict(s) for s in SERVICIOS_CATALOGO_DEFAULT]
+        if "ordenes" not in datos or not isinstance(datos["ordenes"], list):
+            datos["ordenes"] = []
+
+    _CACHE_SERVICIOS["data"] = datos
+    _CACHE_SERVICIOS["ts"] = ahora
+    return datos
+
+def guardar_datos_servicios(datos):
+    _CACHE_SERVICIOS["data"] = datos
+    _CACHE_SERVICIOS["ts"] = time.time()
+    texto_json = json.dumps(datos, ensure_ascii=False, indent=2)
+    try:
+        with open(SERVICIOS_JSON, 'w', encoding='utf-8') as f:
+            f.write(texto_json)
+    except Exception as e:
+        print(f"Error guardando servicios taller: {e}")
+    if ES_POSTGRES:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("""
+                    INSERT INTO dbo.kv_store (clave, valor) VALUES ('servicios_taller', :v)
+                    ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor
+                """), {"v": texto_json})
+        except Exception as e:
+            print(f"Aviso kv_store servicios: {e}")
+
+def obtener_servicios_normalizados(solo_activos=True):
+    datos = cargar_datos_servicios()
+    cfg = obtener_config_pago()
+    tasa = float(cfg.get("tasa_bcv") or 45.50)
+    salida = []
+    for s in datos.get("catalogo", []):
+        activo = bool(s.get("activo", True))
+        if solo_activos and not activo:
+            continue
+        p_usd = round(float(s.get("precio_usd") or 0), 2)
+        salida.append({
+            "id_servicio": int(s.get("id_servicio", 0)),
+            "nombre": str(s.get("nombre") or "").strip().upper(),
+            "categoria": str(s.get("categoria") or "MANTENIMIENTO").strip().upper(),
+            "duracion": str(s.get("duracion") or "45 min").strip(),
+            "descripcion": str(s.get("descripcion") or "").strip(),
+            "precio_usd": p_usd,
+            "precio_bs": round(p_usd * tasa, 2),
+            "activo": activo
+        })
+    salida.sort(key=lambda x: x["id_servicio"])
+    return salida
 
 def guardar_imagen_subida(archivo, prefijo="repuesto"):
     if archivo and archivo.filename:
@@ -362,7 +518,17 @@ def tienda():
     marcas = sorted(list({p['marca'] for p in productos if p['marca']}))
     categorias = sorted(list({p['categoria'] for p in productos if p['categoria']}))
     config_pago = obtener_config_pago()
-    return render_template('tienda.html', productos=productos, marcas=marcas, categorias=categorias, config_pago=config_pago)
+    servicios = obtener_servicios_normalizados(solo_activos=True)
+    categorias_servicios = sorted(list({s['categoria'] for s in servicios if s['categoria']}))
+    return render_template(
+        'tienda.html',
+        productos=productos,
+        marcas=marcas,
+        categorias=categorias,
+        config_pago=config_pago,
+        servicios=servicios,
+        categorias_servicios=categorias_servicios
+    )
 
 @app.route('/tasa_pago', methods=['GET', 'POST'])
 @login_required
@@ -727,7 +893,7 @@ def solicitar_compra_cliente():
 
 @app.route('/api/mis_pedidos/<rif>')
 def mis_pedidos_cliente(rif):
-    """Permite al cliente consultar el estado de sus pedidos con su RIF/Cédula."""
+    """Permite al cliente consultar el estado de sus pedidos y servicios de taller con su RIF/Cédula."""
     r_clean = rif.strip().upper()
     sql = text("""
         SELECT TOP 15 p.id_pedido, p.id_repuesto, p.cliente, p.cliente_rif, p.cantidad, p.estado, p.fecha_pedido,
@@ -755,7 +921,255 @@ def mis_pedidos_cliente(rif):
             "total_usd": ex.get("total_usd", 0),
             "total_bs": ex.get("total_bs", 0)
         })
-    return jsonify({"encontrado": len(lista) > 0, "pedidos": lista})
+
+    datos_srv = cargar_datos_servicios()
+    ordenes_taller = [
+        o for o in datos_srv.get("ordenes", [])
+        if str(o.get("cliente_rif") or "").strip().upper() == r_clean
+    ]
+    ordenes_taller.sort(key=lambda x: int(x.get("id_orden", 0)), reverse=True)
+
+    return jsonify({
+        "encontrado": (len(lista) > 0 or len(ordenes_taller) > 0),
+        "pedidos": lista,
+        "servicios_taller": ordenes_taller[:15]
+    })
+
+# --- 5.5 ÁREA DE SERVICIOS DE MOTOS Y TALLER MECÁNICO ---
+@app.route('/api/solicitar_servicio_moto', methods=['POST'])
+def solicitar_servicio_moto():
+    """Registra una solicitud de servicio de taller desde /tienda o desde el panel interno."""
+    try:
+        id_srv = int(request.form.get('id_servicio') or 0)
+        c_rif = request.form.get('cliente_rif', '').upper().strip()
+        c_nom = request.form.get('cliente', '').upper().strip()
+        tlf_cli = request.form.get('telefono', '').strip()
+        moto_modelo = request.form.get('moto_modelo', '').upper().strip()
+        moto_placa = request.form.get('moto_placa', 'S/P').upper().strip() or 'S/P'
+        fecha_cita = request.form.get('fecha_cita', 'Hoy / Lo antes posible').strip()
+        observaciones = request.form.get('observaciones', '').strip()
+        metodo_pago = request.form.get('metodo_pago', 'Pago en Taller').strip()
+        referencia_pm = request.form.get('referencia_pm', '').strip()
+        banco_origen = request.form.get('banco_origen', '').strip()
+        id_rep_extra = int(request.form.get('id_repuesto_extra') or 0)
+
+        if not c_rif or not c_nom or not moto_modelo:
+            return jsonify({"exito": False, "mensaje": "❌ Completa tu Cédula/RIF, Nombre y Modelo de la Moto."})
+
+        datos = cargar_datos_servicios()
+        catalogo_srv = obtener_servicios_normalizados(solo_activos=False)
+        srv_obj = next((s for s in catalogo_srv if s['id_servicio'] == id_srv), None)
+        if not srv_obj:
+            return jsonify({"exito": False, "mensaje": "❌ El servicio seleccionado no existe."})
+
+        cfg = obtener_config_pago()
+        tasa = float(cfg.get('tasa_bcv') or 45.50)
+
+        mano_obra_usd = float(srv_obj['precio_usd'])
+        repuesto_usd = 0.0
+        repuesto_desc = ""
+
+        # Si incluyó un repuesto del inventario para instalar en el taller:
+        if id_rep_extra > 0:
+            df_r = consultar(text("SELECT * FROM dbo.repuestos WHERE id_repuesto = :id"), {"id": id_rep_extra})
+            if not df_r.empty:
+                p_norm = normalizar_productos(df_r)[0]
+                if p_norm['disponible'] > 0:
+                    repuesto_usd = float(p_norm['precio_venta'])
+                    repuesto_desc = f"#{p_norm['id_repuesto']} {p_norm['descripcion']}"
+
+        total_usd = round(mano_obra_usd + repuesto_usd, 2)
+        total_bs = round(total_usd * tasa, 2)
+
+        # Guardar/actualizar cliente en dbo.socios
+        try:
+            with engine.begin() as conn:
+                check_s = conn.execute(text("SELECT COUNT(*) FROM dbo.socios WHERE id_proveedor = :r"), {"r": c_rif}).scalar()
+                if check_s == 0:
+                    conn.execute(text("""
+                        INSERT INTO dbo.socios (id_proveedor, nombre_empresa, ubicacion, telefono, es_cliente, es_proveedor)
+                        VALUES (:r, :n, 'CLIENTE TALLER', :t, 1, 0)
+                    """), {"r": c_rif, "n": c_nom, "t": tlf_cli or 'S/N'})
+                elif tlf_cli:
+                    conn.execute(text("UPDATE dbo.socios SET telefono = :t, es_cliente = 1 WHERE id_proveedor = :r"), {"t": tlf_cli, "r": c_rif})
+        except Exception:
+            pass
+
+        ordenes = datos.get("ordenes", [])
+        nuevo_id = max([int(o.get("id_orden", 1000)) for o in ordenes], default=1000) + 1
+        estado_inicial = "EN TALLER" if request.form.get("ingreso_directo") == "1" else "SOLICITADO"
+
+        nueva_orden = {
+            "id_orden": nuevo_id,
+            "id_servicio": srv_obj["id_servicio"],
+            "servicio_nombre": srv_obj["nombre"],
+            "categoria": srv_obj["categoria"],
+            "duracion": srv_obj["duracion"],
+            "cliente_rif": c_rif,
+            "cliente": c_nom,
+            "telefono": tlf_cli,
+            "moto_modelo": moto_modelo,
+            "moto_placa": moto_placa,
+            "fecha_cita": fecha_cita,
+            "fecha_registro": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "observaciones": observaciones,
+            "nota_mecanico": "",
+            "id_repuesto_extra": id_rep_extra if repuesto_desc else 0,
+            "repuesto_desc": repuesto_desc,
+            "mano_obra_usd": mano_obra_usd,
+            "repuesto_usd": repuesto_usd,
+            "total_usd": total_usd,
+            "total_bs": total_bs,
+            "tasa_bcv": tasa,
+            "metodo_pago": metodo_pago,
+            "referencia_pm": referencia_pm,
+            "banco_origen": banco_origen,
+            "estado": estado_inicial
+        }
+        ordenes.insert(0, nueva_orden)
+        datos["ordenes"] = ordenes
+        guardar_datos_servicios(datos)
+
+        return jsonify({
+            "exito": True,
+            "id_orden": nuevo_id,
+            "mensaje": f"✅ Orden de Taller #{nuevo_id} registrada para tu moto {moto_modelo} ({moto_placa}). Total: ${total_usd:.2f} (Bs. {total_bs:.2f})."
+        })
+    except Exception as e:
+        return jsonify({"exito": False, "mensaje": f"Error al registrar servicio: {str(e)}"})
+
+@app.route('/servicios')
+@login_required
+def modulo_servicios():
+    """Panel interno para controlar las motos en taller y el catálogo de mano de obra."""
+    if session.get('rol') not in ROLES_VENTAS:
+        return redirect(url_for('index'))
+
+    datos = cargar_datos_servicios()
+    catalogo_srv = obtener_servicios_normalizados(solo_activos=False)
+    cfg = obtener_config_pago()
+    tasa = float(cfg.get('tasa_bcv') or 45.50)
+
+    df_rep = consultar("SELECT * FROM dbo.repuestos ORDER BY descripcion ASC")
+    repuestos_disp = [p for p in normalizar_productos(df_rep) if p['disponible'] > 0]
+
+    ordenes_activas = []
+    ordenes_entregadas = []
+    for o in datos.get("ordenes", []):
+        item = dict(o)
+        tlf_limpio = ''.join(ch for ch in str(item.get('telefono') or '') if ch.isdigit())
+        if tlf_limpio.startswith('0'):
+            tlf_wa = '58' + tlf_limpio[1:]
+        elif tlf_limpio.startswith('58'):
+            tlf_wa = tlf_limpio
+        else:
+            tlf_wa = ('58' + tlf_limpio) if tlf_limpio else ''
+        item['telefono_wa'] = tlf_wa
+        item['total_bs'] = round(float(item.get('total_usd') or 0) * tasa, 2)
+
+        if item.get('estado') in ('ENTREGADA', 'CANCELADO'):
+            ordenes_entregadas.append(item)
+        else:
+            ordenes_activas.append(item)
+
+    kpis_taller = {
+        "citas": sum(1 for o in ordenes_activas if o.get('estado') == 'SOLICITADO'),
+        "en_taller": sum(1 for o in ordenes_activas if o.get('estado') == 'EN TALLER'),
+        "listas": sum(1 for o in ordenes_activas if o.get('estado') == 'LISTA PARA ENTREGAR'),
+        "entregadas": sum(1 for o in ordenes_entregadas if o.get('estado') == 'ENTREGADA')
+    }
+
+    return render_template(
+        'servicios.html',
+        catalogo_srv=catalogo_srv,
+        ordenes_activas=ordenes_activas,
+        ordenes_entregadas=ordenes_entregadas[:25],
+        repuestos_disp=repuestos_disp,
+        kpis_taller=kpis_taller,
+        config_pago=cfg
+    )
+
+@app.route('/api/estado_servicio/<int:id_orden>', methods=['POST'])
+@login_required
+def cambiar_estado_servicio(id_orden):
+    if session.get('rol') not in ROLES_VENTAS:
+        return jsonify({"exito": False, "mensaje": "Sin permisos"})
+    try:
+        nuevo_estado = request.form.get('estado', '').upper().strip()
+        nota_mecanico = request.form.get('nota_mecanico', '').strip()
+        datos = cargar_datos_servicios()
+        for o in datos.get("ordenes", []):
+            if int(o.get("id_orden", 0)) == id_orden:
+                estado_ant = o.get("estado")
+                o["estado"] = nuevo_estado
+                if nota_mecanico:
+                    o["nota_mecanico"] = nota_mecanico
+                # Si se entrega la moto y tenía un repuesto asociado aún no descontado, descontar 1 unidad:
+                if nuevo_estado == "ENTREGADA" and estado_ant != "ENTREGADA" and int(o.get("id_repuesto_extra") or 0) > 0 and not o.get("repuesto_descontado"):
+                    try:
+                        with engine.begin() as conn:
+                            conn.execute(
+                                text("UPDATE dbo.repuestos SET stock = GREATEST(0, COALESCE(stock, 0) - 1) WHERE id_repuesto = :id") if ES_POSTGRES else
+                                text("UPDATE dbo.repuestos SET stock = CASE WHEN COALESCE(stock, 0) > 0 THEN stock - 1 ELSE 0 END WHERE id_repuesto = :id"),
+                                {"id": int(o["id_repuesto_extra"])}
+                            )
+                        o["repuesto_descontado"] = True
+                    except Exception:
+                        pass
+                guardar_datos_servicios(datos)
+                return jsonify({"exito": True, "mensaje": f"✅ Orden #{id_orden} actualizada a: {nuevo_estado}."})
+        return jsonify({"exito": False, "mensaje": "Orden no encontrada."})
+    except Exception as e:
+        return jsonify({"exito": False, "mensaje": str(e)})
+
+@app.route('/api/guardar_catalogo_servicio', methods=['POST'])
+@login_required
+def guardar_catalogo_servicio():
+    if session.get('rol') not in ROLES_COMPRAS:
+        return jsonify({"exito": False, "mensaje": "Solo Admin o Analista pueden editar el catálogo de servicios."})
+    try:
+        id_srv = int(request.form.get('id_servicio') or 0)
+        nombre = request.form.get('nombre', '').upper().strip()
+        categoria = request.form.get('categoria', 'MANTENIMIENTO').upper().strip()
+        duracion = request.form.get('duracion', '45 min').strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        precio_usd = round(float(request.form.get('precio_usd') or 0), 2)
+        activo = request.form.get('activo', '1') == '1'
+
+        if not nombre or precio_usd <= 0:
+            return jsonify({"exito": False, "mensaje": "Indica el nombre del servicio y un precio mayor a $0."})
+
+        datos = cargar_datos_servicios()
+        catalogo = datos.get("catalogo", [])
+        existente = next((s for s in catalogo if int(s.get("id_servicio", 0)) == id_srv), None)
+        if existente:
+            existente.update({
+                "nombre": nombre,
+                "categoria": categoria,
+                "duracion": duracion,
+                "descripcion": descripcion,
+                "precio_usd": precio_usd,
+                "activo": activo
+            })
+            msg = f"✅ Servicio #{id_srv} actualizado (${precio_usd:.2f})."
+        else:
+            nuevo_id = max([int(s.get("id_servicio", 100)) for s in catalogo], default=100) + 1
+            catalogo.append({
+                "id_servicio": nuevo_id,
+                "nombre": nombre,
+                "categoria": categoria,
+                "duracion": duracion,
+                "descripcion": descripcion,
+                "precio_usd": precio_usd,
+                "activo": True
+            })
+            msg = f"✅ Nuevo servicio #{nuevo_id} agregado al catálogo (${precio_usd:.2f})."
+
+        datos["catalogo"] = catalogo
+        guardar_datos_servicios(datos)
+        return jsonify({"exito": True, "mensaje": msg})
+    except Exception as e:
+        return jsonify({"exito": False, "mensaje": str(e)})
 
 @app.route('/lista_pedidos')
 @login_required

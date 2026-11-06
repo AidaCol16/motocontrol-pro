@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-3">
+    <!-- CABECERA DEL MÓDULO DE TALLER Y SERVICIOS -->
+    <div class="card bg-dark text-white shadow mb-4 border-0" style="background: linear-gradient(135deg, #1a1a1a 0%, #1b4332 100%) !important;">
+        <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+                <span class="badge bg-warning text-dark fw-bold mb-2"><i class="fas fa-tools me-1"></i>TALLER MECÁNICO Y MANO DE OBRA</span>
+                <h2 class="fw-bold mb-1"><i class="fas fa-motorcycle me-2 text-warning"></i>Control de Servicios de Motos</h2>
+                <p class="text-light opacity-75 mb-0">Gestiona citas desde la tienda online, ingresos de motos al taller, avisos por WhatsApp y catálogo de tarifas en USD / Bs. (BCV).</p>
+            </div>
+            <div class="mt-3 mt-md-0 d-flex flex-wrap gap-2">
+                <button class="btn btn-warning fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#modalIngresoTaller">
+                    <i class="fas fa-plus-circle me-1"></i>Registrar Moto en Taller
+                </button>
+                {% if session.get('rol') in ['admin', 'analista_compras'] %}
+                <button class="btn btn-info fw-bold text-dark" onclick="abrirModalEditarCatalogoSrv(0, '', 'MANTENIMIENTO', '45 min', '', 10.0, true)">
+                    <i class="fas fa-wrench me-1"></i>Nuevo Servicio / Tarifa
+                </button>
+                {% endif %}
+                <a href="/tienda?tab=servicios" class="btn btn-outline-light">
+                    <i class="fas fa-external-link-alt me-1"></i>Ver en Tienda Cliente
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs DEL TALLER -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-secondary">
+                <div class="card-body py-3">
+                    <small class="text-muted fw-bold text-uppercase">Citas Solicitadas</small>
+                    <h3 class="fw-bold text-dark mb-0">{{ kpis_taller.citas }}</h3>
+                    <small class="text-secondary">Por recibir en taller</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+                <div class="card-body py-3">
+                    <small class="text-muted fw-bold text-uppercase">Motos en Taller</small>
+                    <h3 class="fw-bold text-primary mb-0">{{ kpis_taller.en_taller }}</h3>
+                    <small class="text-primary">En revisión / mecánico</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+                <div class="card-body py-3">
+                    <small class="text-muted fw-bold text-uppercase">Listas para Retiro</small>
+                    <h3 class="fw-bold text-warning mb-0">{{ kpis_taller.listas }}</h3>
+                    <small class="text-dark">Avisar al cliente</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                <div class="card-body py-3">
+                    <small class="text-muted fw-bold text-uppercase">Motos Entregadas</small>
+                    <h3 class="fw-bold text-success mb-0">{{ kpis_taller.entregadas }}</h3>
+                    <small class="text-success">Servicios completados</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. ÓRDENES DE TALLER ACTIVAS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-clipboard-list text-warning me-2"></i>Órdenes de Servicio Activas en Taller ({{ ordenes_activas|length }})</span>
+            <span class="badge bg-warning text-dark">Tasa BCV: Bs. {{ "%.2f"|format(config_pago.tasa_bcv) }} / $1</span>
+        </div>
+        <div class="card-body p-0">
+            {% if ordenes_activas %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th># Orden</th>
+                            <th>Cliente / WhatsApp</th>
+                            <th>Moto / Placa</th>
+                            <th>Servicio y Detalles</th>
+                            <th>Total ($ / Bs.)</th>
+                            <th>Estado Actual</th>
+                            <th class="text-center">Acciones de Taller</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in ordenes_activas %}
+                        <tr>
+                            <td class="fw-bold">
+                                #{{ o.id_orden }}
+                                <div class="small text-muted">{{ o.fecha_registro }}</div>
+                                <span class="badge bg-light text-dark border">{{ o.fecha_cita }}</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ o.cliente }}</div>
+                                <small class="text-muted">{{ o.cliente_rif }}</small>
+                                {% if o.telefono %}
+                                <div class="mt-1">
+                                    <a href="https://wa.me/{{ o.telefono_wa }}?text={{ ('Hola ' ~ o.cliente ~ ', te escribimos del Taller MotoControl Pro respecto a tu moto ' ~ o.moto_modelo ~ ' (' ~ o.moto_placa ~ ') - Orden #' ~ o.id_orden ~ '. Estado actual: ' ~ o.estado ~ '. Total: $' ~ ('%.2f'|format(o.total_usd)) ~ ' (Bs. ' ~ ('%.2f'|format(o.total_bs)) ~ ').')|urlencode }}"
+                                       target="_blank" class="btn btn-success btn-sm py-0 px-2 fw-bold">
+                                        <i class="fab fa-whatsapp me-1"></i>{{ o.telefono }}
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-bold text-primary"><i class="fas fa-motorcycle me-1"></i>{{ o.moto_modelo }}</div>
+                                <span class="badge bg-dark">Placa: {{ o.moto_placa }}</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ o.servicio_nombre }}</div>
+                                {% if o.repuesto_desc %}
+                                <div class="small text-primary fw-semibold"><i class="fas fa-box-open me-1"></i>+ Repuesto: {{ o.repuesto_desc }} (${{ "%.2f"|format(o.repuesto_usd) }})</div>
+                                {% endif %}
+                                {% if o.observaciones %}
+                                <div class="small text-muted"><em>Cliente: "{{ o.observaciones }}"</em></div>
+                                {% endif %}
+                                {% if o.nota_mecanico %}
+                                <div class="small text-success fw-semibold"><i class="fas fa-wrench me-1"></i>Mecánico: {{ o.nota_mecanico }}</div>
+                                {% endif %}
+                                <div class="small text-secondary mt-1">
+                                    Pago: <strong>{{ o.metodo_pago }}</strong>
+                                    {% if o.referencia_pm %} | Ref: <span class="badge bg-info text-dark">{{ o.referencia_pm }}</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fs-5 fw-bold text-primary">${{ "%.2f"|format(o.total_usd) }}</div>
+                                <small class="fw-bold text-success">Bs. {{ "%.2f"|format(o.total_bs) }}</small>
+                            </td>
+                            <td>
+                                {% if o.estado == 'SOLICITADO' %}
+                                <span class="badge bg-secondary">⏳ CITA SOLICITADA</span>
+                                {% elif o.estado == 'EN TALLER' %}
+                                <span class="badge bg-primary"><i class="fas fa-wrench me-1"></i>EN TALLER</span>
+                                {% elif o.estado == 'LISTA PARA ENTREGAR' %}
+                                <span class="badge bg-warning text-dark fw-bold"><i class="fas fa-bell me-1"></i>LISTA PARA ENTREGAR</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex flex-wrap gap-1 justify-content-center">
+                                    {% if o.estado == 'SOLICITADO' %}
+                                    <button class="btn btn-primary btn-sm fw-bold" onclick="actualizarEstadoOrden({{ o.id_orden }}, 'EN TALLER')" title="Recibir moto en taller">
+                                        <i class="fas fa-wrench me-1"></i>Recibir Moto
+                                    </button>
+                                    {% endif %}
+                                    {% if o.estado in ['SOLICITADO', 'EN TALLER'] %}
+                                    <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="actualizarEstadoOrden({{ o.id_orden }}, 'LISTA PARA ENTREGAR')" title="Marcar moto lista para retirar">
+                                        <i class="fas fa-bell me-1"></i>Lista
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-success btn-sm fw-bold" onclick="actualizarEstadoOrden({{ o.id_orden }}, 'ENTREGADA')" title="Entregar moto y cerrar orden">
+                                        <i class="fas fa-check-circle me-1"></i>Entregar
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="actualizarEstadoOrden({{ o.id_orden }}, 'CANCELADO')" title="Cancelar orden">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-motorcycle fa-2x mb-2"></i>
+                <p class="mb-0">No hay motos pendientes en taller en este momento.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 2. CATÁLOGO DE SERVICIOS Y TARIFAS DE MANO DE OBRA -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-tools text-info me-2"></i>Catálogo de Servicios y Tarifas de Mano de Obra ({{ catalogo_srv|length }})</span>
+            {% if session.get('rol') in ['admin', 'analista_compras'] %}
+            <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="abrirModalEditarCatalogoSrv(0, '', 'MANTENIMIENTO', '45 min', '', 10.0, true)">
+                <i class="fas fa-plus me-1"></i>Agregar Servicio
+            </button>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% for s in catalogo_srv %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="border rounded-3 p-3 h-100 d-flex flex-column bg-light">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="badge bg-dark">#{{ s.id_servicio }} — {{ s.categoria }}</span>
+                            <span class="badge {{ 'bg-success' if s.activo else 'bg-secondary' }}">{{ 'Visible en Tienda' if s.activo else 'Oculto' }}</span>
+                        </div>
+                        <h6 class="fw-bold text-dark mt-1 mb-1">{{ s.nombre }}</h6>
+                        <small class="text-primary fw-semibold mb-2"><i class="far fa-clock me-1"></i>Duración est.: {{ s.duracion }}</small>
+                        <p class="small text-muted mb-3 flex-grow-1">{{ s.descripcion }}</p>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <div>
+                                <span class="fs-5 fw-bold text-primary">${{ "%.2f"|format(s.precio_usd) }}</span>
+                                <small class="text-muted ms-1">(Bs. {{ "%.2f"|format(s.precio_bs) }})</small>
+                            </div>
+                            {% if session.get('rol') in ['admin', 'analista_compras'] %}
+                            <button class="btn btn-outline-primary btn-sm"
+                                    onclick='abrirModalEditarCatalogoSrv({{ s.id_servicio }}, {{ s.nombre|tojson }}, {{ s.categoria|tojson }}, {{ s.duracion|tojson }}, {{ s.descripcion|tojson }}, {{ s.precio_usd }}, {{ s.activo|tojson }})'>
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. HISTORIAL RECIENTE DE MOTOS ENTREGADAS -->
+    {% if ordenes_entregadas %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <i class="fas fa-history text-success me-2"></i>Historial Reciente de Motos Entregadas
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th># Orden</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Moto / Placa</th>
+                            <th>Servicio Realizado</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in ordenes_entregadas %}
+                        <tr>
+                            <td class="fw-bold">#{{ o.id_orden }}</td>
+                            <td><small>{{ o.fecha_registro }}</small></td>
+                            <td>{{ o.cliente }} <small class="text-muted">({{ o.cliente_rif }})</small></td>
+                            <td><strong>{{ o.moto_modelo }}</strong> <span class="badge bg-secondary">{{ o.moto_placa }}</span></td>
+                            <td>{{ o.servicio_nombre }}{% if o.repuesto_desc %} <small class="text-primary">(+ {{ o.repuesto_desc }})</small>{% endif %}</td>
+                            <td class="fw-bold">${{ "%.2f"|format(o.total_usd) }}</td>
+                            <td>
+                                {% if o.estado == 'ENTREGADA' %}
+                                <span class="badge bg-success">🏁 ENTREGADA</span>
+                                {% else %}
+                                <span class="badge bg-danger">CANCELADO</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- MODAL 1: REGISTRAR INGRESO DIRECTO DE MOTO EN TALLER -->
+<div class="modal fade" id="modalIngresoTaller" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-motorcycle text-warning me-2"></i>Registrar Ingreso de Moto en Taller</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formIngresoTallerInterno">
+                <div class="modal-body">
+                    <input type="hidden" name="ingreso_directo" value="1">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Cédula / RIF del Cliente:</label>
+                            <input type="text" name="cliente_rif" id="int_rif" class="form-control text-uppercase" placeholder="V-12345678" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Nombre del Cliente:</label>
+                            <input type="text" name="cliente" id="int_cliente" class="form-control text-uppercase" placeholder="NOMBRE COMPLETO" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Teléfono / WhatsApp:</label>
+                            <input type="text" name="telefono" id="int_tlf" class="form-control" placeholder="0412-1234567" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Marca / Modelo de la Moto:</label>
+                            <input type="text" name="moto_modelo" class="form-control text-uppercase" placeholder="Ej: BERA SBR 150 / EMPIRE HORSE" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Placa:</label>
+                            <input type="text" name="moto_placa" class="form-control text-uppercase" placeholder="AB1C23D">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Método de Pago:</label>
+                            <select name="metodo_pago" class="form-select">
+                                <option value="Pago en Taller">Pago en Taller</option>
+                                <option value="Pago Móvil">Pago Móvil</option>
+                                <option value="Divisas Efectivo">Divisas ($)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Servicio a Realizar:</label>
+                            <select name="id_servicio" class="form-select" required>
+                                {% for s in catalogo_srv %}
+                                <option value="{{ s.id_servicio }}">${{ "%.2f"|format(s.precio_usd) }} — {{ s.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Repuesto del Inventario a Instalar (Opcional):</label>
+                            <select name="id_repuesto_extra" class="form-select">
+                                <option value="0">-- Sin repuesto adicional --</option>
+                                {% for p in repuestos_disp %}
+                                <option value="{{ p.id_repuesto }}">+ ${{ "%.2f"|format(p.precio_venta) }} — {{ p.descripcion }} (Disp: {{ p.disponible }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small">Observaciones / Falla reportada:</label>
+                            <input type="text" name="observaciones" class="form-control" placeholder="Detalle del trabajo o síntomas de la moto...">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">Registrar Ingreso</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: CREAR / EDITAR SERVICIO DEL CATÁLOGO -->
+<div class="modal fade" id="modalEditarCatalogoSrv" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-tools text-warning me-2"></i>Configurar Servicio de Taller</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCatalogoSrv">
+                <div class="modal-body">
+                    <input type="hidden" name="id_servicio" id="edit_srv_id">
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small">Nombre del Servicio:</label>
+                        <input type="text" name="nombre" id="edit_srv_nombre" class="form-control text-uppercase" placeholder="Ej: CAMBIO DE ACEITE Y FILTRO" required>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">Área / Categoría:</label>
+                            <select name="categoria" id="edit_srv_cat" class="form-select">
+                                <option value="MOTOR">MOTOR</option>
+                                <option value="TRANSMISIÓN">TRANSMISIÓN</option>
+                                <option value="FRENOS">FRENOS</option>
+                                <option value="ELÉCTRICO">ELÉCTRICO</option>
+                                <option value="CAUCHOS Y RUEDAS">CAUCHOS Y RUEDAS</option>
+                                <option value="MANTENIMIENTO">MANTENIMIENTO</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">Duración Estimada:</label>
+                            <input type="text" name="duracion" id="edit_srv_dur" class="form-control" placeholder="Ej: 45 min / 1 hora" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">Tarifa Mano de Obra ($ USD):</label>
+                            <input type="number" step="0.01" min="0.5" name="precio_usd" id="edit_srv_precio" class="form-control fw-bold" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">Visibilidad en Tienda:</label>
+                            <select name="activo" id="edit_srv_activo" class="form-select">
+                                <option value="1">✅ Visible en /tienda</option>
+                                <option value="0">🔒 Oculto</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small">Descripción de lo que incluye:</label>
+                        <textarea name="descripcion" id="edit_srv_desc" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Guardar Servicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('int_rif').addEventListener('blur', function() {
+    const rif = this.value.trim();
+    if (rif.length > 3) {
+        fetch(`/api/obtener_cliente/${encodeURIComponent(rif)}`)
+            .then(r => r.json())
+            .then(d => {
+                if (d.encontrado) {
+                    document.getElementById('int_cliente').value = d.nombre || '';
+                    if (d.telefono) document.getElementById('int_tlf').value = d.telefono;
+                }
+            });
+    }
+});
+
+document.getElementById('formIngresoTallerInterno').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('/api/solicitar_servicio_moto', { method: 'POST', body: new FormData(this) })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.mensaje);
+            if (data.exito) window.location.reload();
+        });
+});
+
+function actualizarEstadoOrden(idOrden, nuevoEstado) {
+    let nota = '';
+    if (nuevoEstado === 'LISTA PARA ENTREGAR') {
+        nota = prompt('Nota opcional del mecánico para el cliente (o deja vacío):', 'Servicio completado, lista para retirar.') || '';
+    }
+    const fd = new FormData();
+    fd.append('estado', nuevoEstado);
+    fd.append('nota_mecanico', nota);
+    fetch(`/api/estado_servicio/${idOrden}`, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.mensaje);
+            if (data.exito) window.location.reload();
+        });
+}
+
+function abrirModalEditarCatalogoSrv(id, nombre, cat, dur, desc, precio, activo) {
+    document.getElementById('edit_srv_id').value = id;
+    document.getElementById('edit_srv_nombre').value = nombre;
+    document.getElementById('edit_srv_cat').value = cat || 'MANTENIMIENTO';
+    document.getElementById('edit_srv_dur').value = dur || '45 min';
+    document.getElementById('edit_srv_desc').value = desc || '';
+    document.getElementById('edit_srv_precio').value = parseFloat(precio || 10).toFixed(2);
+    document.getElementById('edit_srv_activo').value = activo ? '1' : '0';
+    new bootstrap.Modal(document.getElementById('modalEditarCatalogoSrv')).show();
+}
+
+document.getElementById('formCatalogoSrv').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('/api/guardar_catalogo_servicio', { method: 'POST', body: new FormData(this) })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.mensaje);
+            if (data.exito) window.location.reload();
+        });
+});
+</script>
+{% endblock %}
+

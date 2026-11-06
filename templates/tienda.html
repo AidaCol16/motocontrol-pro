@@ -47,7 +47,7 @@
                     <i class="fas fa-exchange-alt text-warning me-1"></i>Tasa BCV: <strong>Bs. {{ "%.2f"|format(config_pago.tasa_bcv) }} / $1</strong>
                 </span>
                 <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="abrirModalMisPedidos()">
-                    <i class="fas fa-receipt me-1"></i>Consultar Mis Pedidos
+                    <i class="fas fa-receipt me-1"></i>Mis Pedidos y Taller
                 </button>
                 {% if session.get('user_id') %}
                     {% if session.get('rol') != 'cliente' %}
@@ -63,11 +63,11 @@
 
     <div class="container my-4 flex-grow-1">
         <!-- BANNER INFORMATIVO -->
-        <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #1a1a1a 0%, #003b7a 100%); color: white; border-radius: 14px;">
+        <div class="card border-0 shadow-sm mb-3" style="background: linear-gradient(135deg, #1a1a1a 0%, #003b7a 100%); color: white; border-radius: 14px;">
             <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center">
                 <div>
-                    <h3 class="fw-bold mb-1"><i class="fas fa-store text-warning me-2"></i>Catálogo de Repuestos Disponibles</h3>
-                    <p class="mb-0 opacity-75">Consulta disponibilidad en vivo, precios en USD ($) y Bolívares (Bs.), y realiza tu orden con <strong>Pago Móvil</strong> inmediato.</p>
+                    <h3 class="fw-bold mb-1"><i class="fas fa-motorcycle text-warning me-2"></i>Tienda de Repuestos y Taller Especializado</h3>
+                    <p class="mb-0 opacity-75">Consulta repuestos disponibles o agenda el mantenimiento e instalación para tu moto con precios en <strong>USD ($)</strong> y <strong>Bolívares (Bs. BCV)</strong>.</p>
                 </div>
                 <div class="mt-3 mt-md-0 text-md-end">
                     <div class="small text-warning fw-bold">PAGO MÓVIL RÁPIDO</div>
@@ -76,44 +76,63 @@
             </div>
         </div>
 
-        <!-- FILTROS -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body py-3">
-                <div class="row g-2">
-                    <div class="col-md-5">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="fas fa-search text-primary"></i></span>
-                            <input type="text" id="filtroBusqueda" class="form-control" placeholder="Buscar repuesto, código o marca...">
+        <!-- PESTAÑAS PRINCIPALES: REPUESTOS VS SERVICIOS DE MOTOS -->
+        <ul class="nav nav-pills nav-fill gap-2 p-2 bg-white rounded-3 shadow-sm mb-4 border" id="tabsTienda" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold py-3 fs-5" id="tab-repuestos-btn" data-bs-toggle="pill" data-bs-target="#pane-repuestos" type="button" role="tab">
+                    <i class="fas fa-box-open me-2"></i>1. Catálogo de Repuestos
+                    <span class="badge bg-dark ms-2">{{ productos|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold py-3 fs-5" id="tab-servicios-btn" data-bs-toggle="pill" data-bs-target="#pane-servicios" type="button" role="tab">
+                    <i class="fas fa-tools me-2 text-warning"></i>2. Servicios de Motos y Taller
+                    <span class="badge bg-warning text-dark ms-2">{{ servicios|length }}</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="tabsTiendaContent">
+            <!-- ==================== PESTAÑA 1: REPUESTOS ==================== -->
+            <div class="tab-pane fade show active" id="pane-repuestos" role="tabpanel">
+                <!-- FILTROS REPUESTOS -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body py-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white"><i class="fas fa-search text-primary"></i></span>
+                                    <input type="text" id="filtroBusqueda" class="form-control" placeholder="Buscar repuesto, código o marca...">
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <select id="filtroCategoria" class="form-select">
+                                    <option value="">📂 Todas las Categorías</option>
+                                    {% for c in categorias %}
+                                    <option value="{{ c }}">{{ c }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <select id="filtroMarca" class="form-select">
+                                    <option value="">🏷️ Todas las Marcas</option>
+                                    {% for m in marcas %}
+                                    <option value="{{ m }}">{{ m }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <select id="filtroEstado" class="form-select">
+                                    <option value="disponible" selected>✅ Disponibles</option>
+                                    <option value="todos">📦 Todos</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <select id="filtroCategoria" class="form-select">
-                            <option value="">📂 Todas las Categorías</option>
-                            {% for c in categorias %}
-                            <option value="{{ c }}">{{ c }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <select id="filtroMarca" class="form-select">
-                            <option value="">🏷️ Todas las Marcas</option>
-                            {% for m in marcas %}
-                            <option value="{{ m }}">{{ m }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-2">
-                        <select id="filtroEstado" class="form-select">
-                            <option value="disponible" selected>✅ Disponibles</option>
-                            <option value="todos">📦 Todos</option>
-                        </select>
-                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- GRILLA DE PRODUCTOS PARA EL CLIENTE -->
-        <div class="row g-4" id="gridTienda">
+                <!-- GRILLA DE PRODUCTOS PARA EL CLIENTE -->
+                <div class="row g-4" id="gridTienda">
             {% for p in productos %}
             {% set desc_up = p.descripcion|upper %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3 item-tienda"
@@ -172,6 +191,219 @@
                 </div>
             </div>
             {% endfor %}
+        </div>
+            </div>
+
+            <!-- ==================== PESTAÑA 2: SERVICIOS DE MOTOS Y TALLER ==================== -->
+            <div class="tab-pane fade" id="pane-servicios" role="tabpanel">
+                <!-- FILTROS DE SERVICIOS -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body py-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-7">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white"><i class="fas fa-tools text-warning"></i></span>
+                                    <input type="text" id="filtroBusquedaSrv" class="form-control" placeholder="Buscar servicio (ej: aceite, kit de arrastre, frenos, entonación, eléctrico)...">
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <select id="filtroCategoriaSrv" class="form-select">
+                                    <option value="">🔧 Todas las Áreas del Taller</option>
+                                    {% for cs in categorias_servicios %}
+                                    <option value="{{ cs }}">{{ cs }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRILLA DE SERVICIOS DE MOTOS -->
+                <div class="row g-4" id="gridServiciosTienda">
+                    {% for s in servicios %}
+                    <div class="col-12 col-md-6 col-lg-4 item-servicio-tienda"
+                         data-texto="{{ s.id_servicio }} {{ s.nombre|upper }} {{ s.categoria|upper }} {{ s.descripcion|upper }}"
+                         data-categoria="{{ s.categoria }}">
+                        <div class="card h-100 catalogo-card shadow-sm border-0 position-relative">
+                            <!-- Cabecera visual según área mecánica -->
+                            <div class="p-3 text-white d-flex justify-content-between align-items-center"
+                                 style="{% if 'MOTOR' in s.categoria %}background: linear-gradient(135deg, #1b4332, #2d6a4f);{% elif 'TRANSMI' in s.categoria %}background: linear-gradient(135deg, #003566, #0077b6);{% elif 'FRENO' in s.categoria %}background: linear-gradient(135deg, #6a040f, #b5179e);{% elif 'ELÉCTRIC' in s.categoria or 'ELECTRIC' in s.categoria %}background: linear-gradient(135deg, #3a0ca3, #4361ee);{% else %}background: linear-gradient(135deg, #212529, #495057);{% endif %}">
+                                <div>
+                                    <span class="badge bg-warning text-dark fw-bold mb-1">{{ s.categoria }}</span>
+                                    <h6 class="fw-bold mb-0">{{ s.nombre }}</h6>
+                                </div>
+                                <div class="ms-2 text-end">
+                                    {% if 'MOTOR' in s.categoria %}
+                                    <i class="fas fa-oil-can fa-2x text-warning"></i>
+                                    {% elif 'TRANSMI' in s.categoria %}
+                                    <i class="fas fa-cogs fa-2x text-warning"></i>
+                                    {% elif 'FRENO' in s.categoria %}
+                                    <i class="fas fa-compact-disc fa-2x text-warning"></i>
+                                    {% elif 'ELÉCTRIC' in s.categoria or 'ELECTRIC' in s.categoria %}
+                                    <i class="fas fa-bolt fa-2x text-warning"></i>
+                                    {% elif 'CAUCHO' in s.categoria %}
+                                    <i class="fas fa-dharmachakra fa-2x text-warning"></i>
+                                    {% else %}
+                                    <i class="fas fa-wrench fa-2x text-warning"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="card-body d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-light text-dark border"><i class="far fa-clock text-primary me-1"></i>Tiempo est.: {{ s.duracion }}</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Garantía de Taller</span>
+                                </div>
+                                <p class="text-muted small mb-3 flex-grow-1">{{ s.descripcion }}</p>
+
+                                <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.72rem;">MANO DE OBRA</small>
+                                        <div class="fs-4 fw-bold text-primary lh-1">${{ "%.2f"|format(s.precio_usd) }}</div>
+                                        <small class="text-muted fw-semibold">Bs. {{ "%.2f"|format(s.precio_bs) }}</small>
+                                    </div>
+                                    <button class="btn btn-warning fw-bold text-dark shadow-sm"
+                                            onclick='abrirModalServicio({{ s.id_servicio }}, {{ s.nombre|tojson }}, {{ s.categoria|tojson }}, {{ s.duracion|tojson }}, {{ s.descripcion|tojson }}, {{ s.precio_usd }})'>
+                                        <i class="fas fa-calendar-check me-1"></i>Agendar Servicio
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA AGENDAR SERVICIO DE TALLER -->
+    <div class="modal fade" id="modalServicioTaller" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-tools text-warning me-2"></i>Agendar Servicio de Moto en Taller</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formServicioCliente">
+                    <div class="modal-body">
+                        <input type="hidden" name="id_servicio" id="srv_id">
+                        <div class="row g-3">
+                            <!-- Columna Izquierda: Resumen del Servicio + Combo Repuesto Opcional -->
+                            <div class="col-md-6">
+                                <div class="p-3 rounded bg-light border mb-3">
+                                    <span class="badge bg-warning text-dark mb-1">1. SERVICIO SELECCIONADO</span>
+                                    <h6 class="fw-bold text-dark mb-1" id="srv_nombre_txt"></h6>
+                                    <small class="text-primary fw-semibold d-block mb-1" id="srv_duracion_txt"></small>
+                                    <p class="small text-muted mb-2" id="srv_desc_txt"></p>
+
+                                    <div class="mb-2 pt-2 border-top">
+                                        <label class="form-label small fw-bold text-dark mb-1">
+                                            <i class="fas fa-box-open text-primary me-1"></i>¿Incluir repuesto de nuestro almacén? (Opcional):
+                                        </label>
+                                        <select name="id_repuesto_extra" id="srv_repuesto_extra" class="form-select form-select-sm">
+                                            <option value="0" data-precio="0">-- Solo Mano de Obra (Traigo mi repuesto / No aplica) --</option>
+                                            {% for p in productos if p.disponible > 0 %}
+                                            <option value="{{ p.id_repuesto }}" data-precio="{{ p.precio_venta }}">
+                                                + ${{ "%.2f"|format(p.precio_venta) }} — {{ p.descripcion }} ({{ p.marca }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted fw-semibold">Total Estimado (USD):</span>
+                                        <span class="fs-5 fw-bold text-primary" id="srv_total_usd">$0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <span class="text-dark fw-bold">Total en Bolívares (BCV):</span>
+                                        <span class="fs-4 fw-bold text-success" id="srv_total_bs">Bs. 0.00</span>
+                                    </div>
+                                    <small class="text-muted d-block text-end">Tasa BCV: Bs. {{ "%.2f"|format(config_pago.tasa_bcv) }} / $1</small>
+                                </div>
+
+                                <div class="pago-movil-box p-3 shadow-sm">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge bg-warning text-dark fw-bold"><i class="fas fa-university me-1"></i>DATOS PAGO MÓVIL (SI ABONAS YA)</span>
+                                        <button type="button" class="btn btn-outline-light btn-sm py-0" onclick="copiarPagoMovilServicio()">
+                                            <i class="fas fa-copy me-1"></i>Copiar
+                                        </button>
+                                    </div>
+                                    <div class="small mb-1"><strong>Banco:</strong> {{ config_pago.banco }}</div>
+                                    <div class="small mb-1"><strong>Teléfono:</strong> <span class="fs-6 fw-bold text-warning">{{ config_pago.telefono_pm }}</span></div>
+                                    <div class="small mb-1"><strong>RIF:</strong> <span class="fw-bold">{{ config_pago.rif_negocio }}</span></div>
+                                    <div class="small"><strong>Titular:</strong> {{ config_pago.titular }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Columna Derecha: Datos del Cliente y de la Moto -->
+                            <div class="col-md-6">
+                                <span class="badge bg-primary mb-2">2. DATOS DEL CLIENTE Y DE LA MOTO</span>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-5">
+                                        <label class="form-label fw-bold small mb-1">Cédula / RIF:</label>
+                                        <input type="text" name="cliente_rif" id="srv_rif" class="form-control form-control-sm text-uppercase" placeholder="V-12345678" required>
+                                    </div>
+                                    <div class="col-7">
+                                        <label class="form-label fw-bold small mb-1">Nombre y Apellido:</label>
+                                        <input type="text" name="cliente" id="srv_cliente" class="form-control form-control-sm text-uppercase" placeholder="TU NOMBRE" required>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small mb-1"><i class="fab fa-whatsapp text-success me-1"></i>Teléfono / WhatsApp (para avisarte cuando esté lista):</label>
+                                    <input type="text" name="telefono" id="srv_tlf" class="form-control form-control-sm" placeholder="0412-1234567" required>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-7">
+                                        <label class="form-label fw-bold small mb-1"><i class="fas fa-motorcycle text-primary me-1"></i>Marca y Modelo de Moto:</label>
+                                        <input type="text" name="moto_modelo" class="form-control form-control-sm text-uppercase" placeholder="Ej: BERA SBR 150 / HORSE" required>
+                                    </div>
+                                    <div class="col-5">
+                                        <label class="form-label fw-bold small mb-1">Placa:</label>
+                                        <input type="text" name="moto_placa" class="form-control form-control-sm text-uppercase" placeholder="Ej: AB1C23D">
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small mb-1">¿Cuándo deseas traer la moto?</label>
+                                    <select name="fecha_cita" class="form-select form-select-sm">
+                                        <option value="Hoy mismo (Turno inmediato)">⚡ Hoy mismo (Turno inmediato)</option>
+                                        <option value="Mañana en la mañana (8:00 AM - 12:00 PM)">🌅 Mañana en la mañana (8:00 AM - 12:00 PM)</option>
+                                        <option value="Mañana en la tarde (1:00 PM - 5:00 PM)">🌇 Mañana en la tarde (1:00 PM - 5:00 PM)</option>
+                                        <option value="Coordinar por WhatsApp">📲 Coordinar horario por WhatsApp</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small mb-1">Detalle o falla que presenta la moto (Opcional):</label>
+                                    <input type="text" name="observaciones" class="form-control form-control-sm" placeholder="Ej: Suena la cadena, falla al encender en frío...">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small mb-1">Modalidad de Pago:</label>
+                                    <select name="metodo_pago" id="srv_metodo" class="form-select form-select-sm fw-semibold">
+                                        <option value="Pago en Taller al retirar" selected>🏪 Pagar en el Taller (Pago Móvil / Divisas al entregar)</option>
+                                        <option value="Pago Móvil Adelantado">📲 Pago Móvil Adelantado (Reportar referencia ahora)</option>
+                                    </select>
+                                </div>
+                                <div id="bloque_ref_pm_srv" style="display: none;">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <input type="text" name="banco_origen" class="form-control form-control-sm text-uppercase" placeholder="Banco origen">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="text" name="referencia_pm" id="srv_ref" class="form-control form-control-sm fw-bold border-primary" placeholder="Ref. Pago Móvil">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning btn-lg fw-bold text-dark">
+                            <i class="fas fa-calendar-check me-1"></i>Confirmar Solicitud de Servicio
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -401,28 +633,146 @@
             .then(data => {
                 const cont = document.getElementById('resultadoMisPedidos');
                 if (!data.encontrado) {
-                    cont.innerHTML = `<div class="alert alert-warning mb-0">No se encontraron pedidos para el RIF/Cédula <strong>${rif.toUpperCase()}</strong>.</div>`;
+                    cont.innerHTML = `<div class="alert alert-warning mb-0">No se encontraron pedidos ni órdenes de taller para el RIF/Cédula <strong>${rif.toUpperCase()}</strong>.</div>`;
                     return;
                 }
-                let html = `<div class="table-responsive"><table class="table table-sm table-striped align-middle">
-                    <thead class="table-dark"><tr><th># Orden</th><th>Fecha</th><th>Repuesto</th><th>Cant.</th><th>Total</th><th>Pago / Ref</th><th>Estatus</th></tr></thead><tbody>`;
-                data.pedidos.forEach(p => {
-                    const badge = p.estado === 'COMPLETADO'
-                        ? '<span class="badge bg-success">✅ APROBADO / ENTREGADO</span>'
-                        : '<span class="badge bg-warning text-dark">⏳ EN VERIFICACIÓN POR VENDEDOR</span>';
-                    html += `<tr>
-                        <td class="fw-bold">#${p.id_pedido}</td>
-                        <td><small>${p.fecha}</small></td>
-                        <td>${p.descripcion} <small class="text-muted">(${p.marca})</small></td>
-                        <td class="text-center fw-bold">${p.cantidad}</td>
-                        <td><strong>$${(p.total_usd || 0).toFixed(2)}</strong><br><small class="text-muted">Bs. ${(p.total_bs || 0).toFixed(2)}</small></td>
-                        <td><small>${p.metodo_pago}<br>Ref: <strong>${p.referencia_pm || '-'}</strong></small></td>
-                        <td>${badge}</td>
-                    </tr>`;
-                });
-                html += `</tbody></table></div>`;
+                let html = '';
+
+                if (data.servicios_taller && data.servicios_taller.length > 0) {
+                    html += `<h6 class="fw-bold text-dark mt-1 mb-2"><i class="fas fa-tools text-warning me-2"></i>Estado de Mi Moto en el Taller</h6>`;
+                    html += `<div class="table-responsive mb-3"><table class="table table-sm table-striped align-middle">
+                        <thead class="table-dark"><tr><th># Orden</th><th>Moto / Placa</th><th>Servicio</th><th>Total</th><th>Estatus en Taller</th></tr></thead><tbody>`;
+                    data.servicios_taller.forEach(s => {
+                        let badgeSrv = '<span class="badge bg-secondary">⏳ CITA SOLICITADA</span>';
+                        if (s.estado === 'EN TALLER') badgeSrv = '<span class="badge bg-primary"><i class="fas fa-wrench me-1"></i>EN REVISIÓN / TALLER</span>';
+                        else if (s.estado === 'LISTA PARA ENTREGAR') badgeSrv = '<span class="badge bg-warning text-dark fw-bold"><i class="fas fa-bell me-1"></i>¡MOTO LISTA PARA RETIRAR!</span>';
+                        else if (s.estado === 'ENTREGADA') badgeSrv = '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ENTREGADA</span>';
+                        else if (s.estado === 'CANCELADO') badgeSrv = '<span class="badge bg-danger">CANCELADO</span>';
+
+                        const extraRep = s.repuesto_desc ? `<br><small class="text-primary">+ Repuesto: ${s.repuesto_desc}</small>` : '';
+                        const notaMec = s.nota_mecanico ? `<br><small class="text-success fw-semibold">Nota Taller: ${s.nota_mecanico}</small>` : '';
+                        html += `<tr>
+                            <td class="fw-bold">#${s.id_orden}<br><small class="text-muted">${s.fecha_registro || ''}</small></td>
+                            <td><strong>${s.moto_modelo}</strong><br><span class="badge bg-dark">${s.moto_placa}</span></td>
+                            <td>${s.servicio_nombre}${extraRep}${notaMec}</td>
+                            <td><strong>$${(s.total_usd || 0).toFixed(2)}</strong><br><small class="text-muted">Bs. ${((s.total_usd || 0) * TASA_BCV).toFixed(2)}</small></td>
+                            <td>${badgeSrv}</td>
+                        </tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+
+                if (data.pedidos && data.pedidos.length > 0) {
+                    html += `<h6 class="fw-bold text-dark mb-2"><i class="fas fa-box-open text-primary me-2"></i>Mis Compras de Repuestos</h6>`;
+                    html += `<div class="table-responsive"><table class="table table-sm table-striped align-middle">
+                        <thead class="table-dark"><tr><th># Orden</th><th>Fecha</th><th>Repuesto</th><th>Cant.</th><th>Total</th><th>Pago / Ref</th><th>Estatus</th></tr></thead><tbody>`;
+                    data.pedidos.forEach(p => {
+                        const badge = p.estado === 'COMPLETADO'
+                            ? '<span class="badge bg-success">✅ APROBADO / ENTREGADO</span>'
+                            : '<span class="badge bg-warning text-dark">⏳ EN VERIFICACIÓN POR VENDEDOR</span>';
+                        html += `<tr>
+                            <td class="fw-bold">#${p.id_pedido}</td>
+                            <td><small>${p.fecha}</small></td>
+                            <td>${p.descripcion} <small class="text-muted">(${p.marca})</small></td>
+                            <td class="text-center fw-bold">${p.cantidad}</td>
+                            <td><strong>$${(p.total_usd || 0).toFixed(2)}</strong><br><small class="text-muted">Bs. ${(p.total_bs || 0).toFixed(2)}</small></td>
+                            <td><small>${p.metodo_pago}<br>Ref: <strong>${p.referencia_pm || '-'}</strong></small></td>
+                            <td>${badge}</td>
+                        </tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+
                 cont.innerHTML = html;
             });
+    }
+
+    // --- LÓGICA PESTAÑA 2: SERVICIOS DE MOTOS Y TALLER ---
+    let precioServicioBaseUsd = 0;
+
+    function filtrarServiciosTienda() {
+        const q = (document.getElementById('filtroBusquedaSrv').value || '').trim().toUpperCase();
+        const cat = (document.getElementById('filtroCategoriaSrv').value || '').toUpperCase();
+        document.querySelectorAll('.item-servicio-tienda').forEach(el => {
+            const okTexto = !q || (el.dataset.texto || '').includes(q);
+            const okCat = !cat || (el.dataset.categoria || '').toUpperCase() === cat;
+            el.classList.toggle('d-none', !(okTexto && okCat));
+        });
+    }
+
+    ['filtroBusquedaSrv', 'filtroCategoriaSrv'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', filtrarServiciosTienda);
+            el.addEventListener('change', filtrarServiciosTienda);
+        }
+    });
+
+    function recalcularServicio() {
+        const selRep = document.getElementById('srv_repuesto_extra');
+        const opt = selRep.options[selRep.selectedIndex];
+        const precioRep = parseFloat((opt && opt.dataset.precio) || '0');
+        const totalUsd = precioServicioBaseUsd + precioRep;
+        const totalBs = totalUsd * TASA_BCV;
+        document.getElementById('srv_total_usd').innerText = `$${totalUsd.toFixed(2)}`;
+        document.getElementById('srv_total_bs').innerText = `Bs. ${totalBs.toFixed(2)}`;
+    }
+
+    document.getElementById('srv_repuesto_extra').addEventListener('change', recalcularServicio);
+
+    document.getElementById('srv_metodo').addEventListener('change', function() {
+        const esPM = this.value === 'Pago Móvil Adelantado';
+        document.getElementById('bloque_ref_pm_srv').style.display = esPM ? 'block' : 'none';
+        document.getElementById('srv_ref').required = esPM;
+    });
+
+    function abrirModalServicio(id, nombre, cat, duracion, desc, precioUsd) {
+        precioServicioBaseUsd = parseFloat(precioUsd || 0);
+        document.getElementById('srv_id').value = id;
+        document.getElementById('srv_nombre_txt').innerText = `#${id} - ${nombre}`;
+        document.getElementById('srv_duracion_txt').innerText = `Área: ${cat} | Tiempo estimado: ${duracion}`;
+        document.getElementById('srv_desc_txt').innerText = desc;
+        document.getElementById('srv_repuesto_extra').value = '0';
+        recalcularServicio();
+        new bootstrap.Modal(document.getElementById('modalServicioTaller')).show();
+    }
+
+    function copiarPagoMovilServicio() {
+        const texto = `Pago Móvil Taller MotoControl Pro\nBanco: {{ config_pago.banco }}\nTeléfono: {{ config_pago.telefono_pm }}\nRIF: {{ config_pago.rif_negocio }}\nMonto: ${document.getElementById('srv_total_bs').innerText}`;
+        navigator.clipboard.writeText(texto);
+        alert("✅ Datos de Pago Móvil copiados al portapapeles.");
+    }
+
+    document.getElementById('srv_rif').addEventListener('blur', function() {
+        const rif = this.value.trim();
+        if (rif.length > 3) {
+            fetch(`/api/obtener_cliente/${encodeURIComponent(rif)}`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.encontrado) {
+                        document.getElementById('srv_cliente').value = d.nombre || '';
+                        if (d.telefono) document.getElementById('srv_tlf').value = d.telefono;
+                    }
+                });
+        }
+    });
+
+    document.getElementById('formServicioCliente').addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch('/api/solicitar_servicio_moto', { method: 'POST', body: new FormData(this) })
+            .then(r => r.json())
+            .then(data => {
+                alert(data.mensaje);
+                if (data.exito) {
+                    localStorage.setItem('ultimo_rif_cliente', document.getElementById('srv_rif').value.trim());
+                    window.location.href = '/tienda?tab=servicios';
+                }
+            });
+    });
+
+    if (new URLSearchParams(window.location.search).get('tab') === 'servicios') {
+        const btnSrv = document.getElementById('tab-servicios-btn');
+        if (btnSrv) new bootstrap.Tab(btnSrv).show();
     }
     </script>
 </body>

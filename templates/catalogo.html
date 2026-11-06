@@ -13,6 +13,9 @@
                 <a href="/tienda" class="btn btn-success btn-sm fw-bold">
                     <i class="fas fa-store me-1"></i>Abrir Vista Cliente (Pago Móvil)
                 </a>
+                <a href="/servicios" class="btn btn-light btn-sm fw-bold text-dark">
+                    <i class="fas fa-tools me-1 text-warning"></i>Área de Servicios / Taller
+                </a>
                 {% if session.get('rol') == 'admin' %}
                 <a href="/tasa_pago" class="btn btn-info btn-sm fw-bold text-dark">
                     <i class="fas fa-money-bill-wave me-1"></i>Módulo Tasa BCV (Bs. {{ "%.2f"|format(config_pago.tasa_bcv) }})
