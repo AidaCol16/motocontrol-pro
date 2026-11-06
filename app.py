@@ -1,9 +1,10 @@
 import os
 import json
+import time
 import pandas as pd
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, g
 from sqlalchemy import text
 from database import engine, consultar, ES_POSTGRES
 
@@ -46,23 +47,39 @@ CONFIG_PAGO_DEFAULT = {
     "tasa_bcv": 45.50
 }
 
+_CACHE_META = {"data": None, "ts": 0.0}
+_CACHE_COSTOS = {"data": None, "ts": 0.0}
+
 def cargar_meta_catalogo():
+    ahora = time.time()
+    if _CACHE_META["data"] is not None and (ahora - _CACHE_META["ts"]) < 30.0:
+        return _CACHE_META["data"]
+
     if ES_POSTGRES:
         try:
             df_kv = consultar("SELECT valor FROM dbo.kv_store WHERE clave = 'catalogo_meta'")
             if not df_kv.empty and df_kv['valor'].iloc[0]:
-                return json.loads(df_kv['valor'].iloc[0])
+                datos = json.loads(df_kv['valor'].iloc[0])
+                _CACHE_META["data"] = datos
+                _CACHE_META["ts"] = ahora
+                return datos
         except Exception:
             pass
     if os.path.exists(CATALOGO_JSON):
         try:
             with open(CATALOGO_JSON, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                datos = json.load(f)
+                _CACHE_META["data"] = datos
+                _CACHE_META["ts"] = ahora
+                return datos
         except Exception:
             return {}
     return {}
 
 def guardar_meta_catalogo(meta):
+    _CACHE_META["data"] = meta
+    _CACHE_META["ts"] = time.time()
+    _CACHE_COSTOS["ts"] = 0.0
     texto_json = json.dumps(meta, ensure_ascii=False, indent=2)
     try:
         with open(CATALOGO_JSON, 'w', encoding='utf-8') as f:
@@ -154,6 +171,10 @@ def calcular_precios_venezuela(costo_base, aplica_iva=True, tarifa_activa=3):
     }
 
 def obtener_ultimos_costos():
+    ahora = time.time()
+    if _CACHE_COSTOS["data"] is not None and (ahora - _CACHE_COSTOS["ts"]) < 30.0:
+        return _CACHE_COSTOS["data"]
+
     df_c = consultar("""
         SELECT id_repuesto, precio_compra 
         FROM (
@@ -170,6 +191,8 @@ def obtener_ultimos_costos():
                 costos[int(r['id_repuesto'])] = float(r['precio_compra'] or 0)
             except Exception:
                 pass
+    _CACHE_COSTOS["data"] = costos
+    _CACHE_COSTOS["ts"] = ahora
     return costos
 
 def normalizar_productos(df):

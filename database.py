@@ -38,9 +38,24 @@ if DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
     elif DATABASE_URL.startswith("postgresql://") and "+psycopg2" not in DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
-    engine = sa.create_engine(DATABASE_URL, pool_pre_ping=True)
+    engine = sa.create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        pool_recycle=280,
+        pool_timeout=20,
+        connect_args={
+            "connect_timeout": 10,
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        },
+    )
     ES_POSTGRES = True
-    inicializar_esquema_postgres(engine)
+    import threading
+    threading.Thread(target=inicializar_esquema_postgres, args=(engine,), daemon=True).start()
 else:
     # Conexión local en Windows (SQL Server Express)
     import pyodbc
@@ -77,7 +92,8 @@ def adaptar_sql(sql_str):
 def consultar(sql, params_dict=None):
     try:
         sql_ejecutar = text(adaptar_sql(str(sql)))
-        return pd.read_sql(sql_ejecutar, engine, params=params_dict)
+        with engine.connect() as conn:
+            return pd.read_sql(sql_ejecutar, conn, params=params_dict)
     except Exception as e:
         print(f"Error en consulta: {e}")
         return pd.DataFrame()
