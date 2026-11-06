@@ -49,14 +49,6 @@
                 <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="abrirModalMisPedidos()">
                     <i class="fas fa-receipt me-1"></i>Mis Pedidos y Taller
                 </button>
-                {% if session.get('user_id') %}
-                    {% if session.get('rol') != 'cliente' %}
-                    <a href="/" class="btn btn-outline-info btn-sm"><i class="fas fa-arrow-left me-1"></i>Panel Negocio</a>
-                    {% endif %}
-                    <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Salir</a>
-                {% else %}
-                    <a href="/login" class="btn btn-outline-light btn-sm"><i class="fas fa-user-lock me-1"></i>Acceso Personal</a>
-                {% endif %}
             </div>
         </div>
     </nav>
